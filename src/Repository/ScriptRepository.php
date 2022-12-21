@@ -1,6 +1,8 @@
 <?php
 
-namespace Mrzkit\WpPluginSnippetCodeManager;
+namespace Mrzkit\WpPluginSnippetCodeManager\Repository;
+use \Mrzkit\WpPluginSnippetCodeManager\Util\GeneralUtil;
+use Mrzkit\WpPluginSnippetCodeManager\Model\ScriptModel;
 
 class ScriptRepository
 {

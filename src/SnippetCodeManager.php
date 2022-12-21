@@ -2,28 +2,42 @@
 
 namespace Mrzkit\WpPluginSnippetCodeManager;
 
+use Mrzkit\WpPluginSnippetCodeManager\Extension\SnippetListTableExtension;
+use Mrzkit\WpPluginSnippetCodeManager\Service\ScriptService;
+
 class SnippetCodeManager
 {
     private static $entryFile;
 
     private $service;
 
-    public function __construct($entryFile)
+    public function __construct($entryFile, $config = [])
     {
         self::$entryFile = (string) $entryFile;
 
         $this->service = new ScriptService();
     }
 
-    // 启动
+    /**
+     * @desc 获取入口文件
+     * @return string
+     */
+    public static function getEntryFile()
+    {
+        return static::getEntryFile();
+    }
+
+    /**
+     * @desc 启动
+     */
     public function launch()
     {
-        register_activation_hook(self::$entryFile, [__CLASS__, 'hfcm_options_install']);
+        register_activation_hook(static::getEntryFile(), [__CLASS__, 'hfcm_options_install']);
         add_action('plugins_loaded', [__CLASS__, 'hfcm_db_update_check']);
         add_action('admin_enqueue_scripts', [__CLASS__, 'hfcm_enqueue_assets']);
         add_action('plugins_loaded', [__CLASS__, 'hfcm_load_translation_files']);
         add_action('admin_menu', [__CLASS__, 'hfcm_modifymenu']);
-        add_filter('plugin_action_links_' . plugin_basename(self::$entryFile), [__CLASS__, 'hfcm_add_plugin_page_settings_link']);
+        add_filter('plugin_action_links_' . plugin_basename(static::getEntryFile()), [__CLASS__, 'hfcm_add_plugin_page_settings_link']);
         add_action('admin_init', [__CLASS__, 'hfcm_init']);
         add_shortcode('hfcm', [__CLASS__, 'hfcm_shortcode']);
         add_action('wp_head', [__CLASS__, 'hfcm_header_scripts']);
@@ -32,17 +46,23 @@ class SnippetCodeManager
         add_action('wp_ajax_hfcm-request', [__CLASS__, 'hfcm_request_handler']);
     }
 
-    // 激活
+    /**
+     * @desc 激活
+     */
     public function active()
     {
     }
 
-    // 停用
+    /**
+     * @desc 停用
+     */
     public function deactive()
     {
     }
 
-    // 卸载
+    /**
+     * @desc 卸载
+     */
     public function uninstall()
     {
         $this->service->uninstall();
@@ -51,7 +71,6 @@ class SnippetCodeManager
     // -----------------
 
     public static $nnr_hfcm_db_version  = "1.5";
-    public static $nnr_hfcm_table       = "hfcm_scripts";
     public static $hfcm_activation_date = "hfcm_activation_date";
     public static $hfcm_db_version      = 'hfcm_db_version';
 
@@ -71,11 +90,11 @@ class SnippetCodeManager
      */
     public static function hfcm_options_install()
     {
-        Kitgor_General_Util::wpInc();
-
         $now = strtotime('now');
         // get_option();
+
         add_option(self::$hfcm_activation_date, $now);
+
         update_option(self::$hfcm_activation_date, $now);
 
         $repository = new ScriptRepository();
@@ -122,12 +141,12 @@ class SnippetCodeManager
             'admin_page_hfcm-update',
         );
 
-        wp_register_style('hfcm_general_admin_assets', plugins_url('assets/css/style-general-admin.css', self::$entryFile));
+        wp_register_style('hfcm_general_admin_assets', plugins_url('assets/css/style-general-admin.css', static::getEntryFile()));
         wp_enqueue_style('hfcm_general_admin_assets');
 
         if (in_array($hook, $allowed_pages)) {
             // Plugin's CSS
-            wp_register_style('hfcm_assets', plugins_url('assets/css/style-admin.css', self::$entryFile));
+            wp_register_style('hfcm_assets', plugins_url('assets/css/style-admin.css', static::getEntryFile()));
             wp_enqueue_style('hfcm_assets');
         }
 
@@ -136,10 +155,10 @@ class SnippetCodeManager
 
         if (in_array($hook, $allowed_pages)) {
             // selectize.js plugin CSS and JS files
-            wp_register_style('selectize-css', plugins_url('assets/css/selectize.bootstrap3.css', self::$entryFile));
+            wp_register_style('selectize-css', plugins_url('assets/css/selectize.bootstrap3.css', static::getEntryFile()));
             wp_enqueue_style('selectize-css');
 
-            wp_register_script('selectize-js', plugins_url('assets/js/selectize.min.js', self::$entryFile), array('jquery'));
+            wp_register_script('selectize-js', plugins_url('assets/js/selectize.min.js', static::getEntryFile()), array('jquery'));
             wp_enqueue_script('selectize-js');
 
             wp_enqueue_code_editor(array('type' => 'text/html'));
@@ -151,7 +170,7 @@ class SnippetCodeManager
      */
     public static function hfcm_load_translation_files()
     {
-        load_plugin_textdomain('header-footer-code-manager', false, dirname(plugin_basename(self::$entryFile)) . 'assets/languages');
+        load_plugin_textdomain('header-footer-code-manager', false, dirname(plugin_basename(static::getEntryFile())) . 'assets/languages');
     }
 
     /**
@@ -544,7 +563,7 @@ class SnippetCodeManager
     public static function hfcm_redirect($url = '')
     {
         // Register the script
-        wp_register_script('hfcm_redirection', plugins_url('assets/js/location.js', self::$entryFile));
+        wp_register_script('hfcm_redirection', plugins_url('assets/js/location.js', static::getEntryFile()));
 
         // Localize the script with new data
         $translation_array = array('url' => $url);
@@ -782,9 +801,9 @@ class SnippetCodeManager
         $s_tags           = array();
 
         // prepare variables for includes/hfcm-add-edit.php
-        wp_register_script('hfcm_showboxes', plugins_url('assets/js/nnr-hfcm-showboxes.js', (self::$entryFile)), array('jquery'));
+        wp_register_script('hfcm_showboxes', plugins_url('assets/js/nnr-hfcm-showboxes.js', (static::getEntryFile())), array('jquery'));
 
-        include_once plugin_dir_path(self::$entryFile) . 'assets/views/add-edit.php';
+        include_once plugin_dir_path(static::getEntryFile()) . 'assets/views/add-edit.php';
     }
 
     // check user capabilities
@@ -850,10 +869,10 @@ class SnippetCodeManager
         // Notify hfcm-add-edit.php to make necesary changes for update
         $update = true;
 
-        wp_register_script('hfcm_showboxes', plugins_url('assets/js/nnr-hfcm-showboxes.js', (self::$entryFile)), array('jquery'));
+        wp_register_script('hfcm_showboxes', plugins_url('assets/js/nnr-hfcm-showboxes.js', (static::getEntryFile())), array('jquery'));
 
         // prepare variables for includes/hfcm-add-edit.php
-        include_once plugin_dir_path(self::$entryFile) . 'assets/views/add-edit.php';
+        include_once plugin_dir_path(static::getEntryFile()) . 'assets/views/add-edit.php';
     }
 
     /**
@@ -917,7 +936,7 @@ class SnippetCodeManager
         <?php
 
         // Register the script
-        wp_register_script('hfcm_toggle', plugins_url('assets/js/toggle.js', self::$entryFile));
+        wp_register_script('hfcm_toggle', plugins_url('assets/js/toggle.js', static::getEntryFile()));
 
         // Localize the script with new data
         $translation_array = array(
@@ -941,9 +960,9 @@ class SnippetCodeManager
         $nnr_hfcm_snippets = $repository->selectAllSnippets();
 
         // Register the script
-        wp_register_script('hfcm_showboxes', plugins_url('js/nnr-hfcm-showboxes.js', dirname(self::$entryFile)), array('jquery'));
+        wp_register_script('hfcm_showboxes', plugins_url('js/nnr-hfcm-showboxes.js', dirname(static::getEntryFile())), array('jquery'));
 
-        include_once plugin_dir_path(self::$entryFile) . 'assets/views/tools.php';
+        include_once plugin_dir_path(static::getEntryFile()) . 'assets/views/tools.php';
     }
 
     /*

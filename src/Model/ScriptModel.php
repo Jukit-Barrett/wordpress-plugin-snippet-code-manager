@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrzkit\WpPluginSnippetCodeManager;
+namespace Mrzkit\WpPluginSnippetCodeManager\Model;
 
 use InvalidArgumentException;
 
@@ -8,7 +8,8 @@ class ScriptModel
 {
     private $db;
 
-    private $tableName = 'kit_scripts';
+//    private $tableName = 'kit_scripts';
+    private $tableName = 'hfcm_scripts';
 
     public function __construct()
     {

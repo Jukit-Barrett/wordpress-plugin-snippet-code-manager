@@ -18,10 +18,14 @@ if ( !class_exists('WP_List_Table')) {
 
 use Mrzkit\WpPluginSnippetCodeManager\SnippetCodeManager;
 
+$config = [
+    'version' => '',
+];
+
 /**
  * If this file is called directly, abort.
  */
 if (defined('WPINC')) {
-    $snippetCodeManager = new SnippetCodeManager(__FILE__);
+    $snippetCodeManager = new SnippetCodeManager(__FILE__, $config);
     $snippetCodeManager->launch();
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrzkit\WpPluginSnippetCodeManager;
+namespace Mrzkit\WpPluginSnippetCodeManager\Extension;
 
 use WP_List_Table;
 

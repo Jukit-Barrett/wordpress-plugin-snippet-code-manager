@@ -1,10 +1,15 @@
 <?php
 
-namespace Mrzkit\WpPluginSnippetCodeManager;
+namespace Mrzkit\WpPluginSnippetCodeManager\Util;
 
 class GeneralUtil
 {
 
+    /**
+     * @desc
+     * @param $data
+     * @return array
+     */
     public static function sanitizeArray($data)
     {
         if ( !is_array($data)) {

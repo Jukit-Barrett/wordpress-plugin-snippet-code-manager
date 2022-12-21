@@ -1,6 +1,8 @@
 <?php
 
-namespace Mrzkit\WpPluginSnippetCodeManager;
+namespace Mrzkit\WpPluginSnippetCodeManager\Service;
+
+use Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository;
 
 class ScriptService
 {
@@ -11,6 +13,9 @@ class ScriptService
         $this->repository = new ScriptRepository();
     }
 
+    /**
+     * @desc 执行卸载
+     */
     public function uninstall()
     {
         // Drop a custom db table
