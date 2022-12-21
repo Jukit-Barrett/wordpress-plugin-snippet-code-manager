@@ -1,8 +1,9 @@
 <?php
 
 namespace Mrzkit\WpPluginSnippetCodeManager\Repository;
-use Mrzkit\WpPluginSnippetCodeManager\Util\GeneralUtil;
+
 use Mrzkit\WpPluginSnippetCodeManager\Model\ScriptModel;
+use Mrzkit\WpPluginSnippetCodeManager\Util\GeneralUtil;
 
 class ScriptRepository
 {
@@ -213,7 +214,11 @@ class ScriptRepository
         return $result;
     }
 
-    // 添加代码片断
+    /**
+     * @desc 添加代码片断
+     * @param $params
+     * @return int
+     */
     public function insert($params)
     {
         $params['sPages']       = GeneralUtil::sanitizeArray($params['sPages']);
@@ -223,6 +228,7 @@ class ScriptRepository
         $params['sCustomPosts'] = GeneralUtil::sanitizeArray($params['sCustomPosts']);
         $params['sCategories']  = GeneralUtil::sanitizeArray($params['sCategories']);
         $params['sTags']        = GeneralUtil::sanitizeArray($params['sTags']);
+        $params['snippet']      = htmlspecialchars_decode($params['snippet']);
 
         $data = [
             'name'         => sanitize_text_field($params['name']),

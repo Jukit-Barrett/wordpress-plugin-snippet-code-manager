@@ -62,7 +62,9 @@ class SnippetCodeManager
      */
     public function uninstall()
     {
-        ScriptService::getInstance()->uninstall();
+        $service = new ScriptService();
+
+        $service->uninstall();
     }
 
     // -----------------
@@ -964,7 +966,8 @@ class SnippetCodeManager
     {
         if ( !empty($_POST['nnr_hfcm_snippets']) && !empty($_POST['action']) && ($_POST['action'] == "download") && check_admin_referer('hfcm-nonce')) {
             $snippetIds = $_POST['nnr_hfcm_snippets'];
-            ScriptService::getInstance()->exportSnippets($snippetIds);
+            $service    = new ScriptService();
+            $service->exportSnippets($snippetIds);
             die;
         }
     }
@@ -993,74 +996,26 @@ class SnippetCodeManager
         }
 
         try {
-            $nnr_hfcm_snippets_json = file_get_contents($_FILES['nnr_hfcm_import_file']['tmp_name']);
-            $nnr_hfcm_snippets      = json_decode($nnr_hfcm_snippets_json, true);
+            $json     = file_get_contents($_FILES['nnr_hfcm_import_file']['tmp_name']);
+            $snippets = json_decode($json, true);
+            $json     = null;
         } catch (\Exception $e) {
             echo '<div class="notice hfcm-warning-notice notice-warning">' . $translations['uploadValidNotice'] . '</div>';
 
             return false;
         }
 
-        if (empty($nnr_hfcm_snippets['title']) || ( !empty($nnr_hfcm_snippets['title']) && $nnr_hfcm_snippets['title'] != "Header Footer Code Manager")) {
+        if (empty($snippets['title']) || ( !empty($snippets['title']) && $snippets['title'] != "Header Footer Code Manager")) {
             echo '<div class="notice hfcm-warning-notice notice-warning">' . $translations['uploadValidNotice'] . '</div>';
 
             return false;
         }
 
-        $allowSnippetType = ["html", "css", "js"];
+        $service = new ScriptService();
 
-        $allowLocation    = ['header', 'before_content', 'after_content', 'footer'];
+        $importStatus = $service->importSnippets($snippets);
 
-        $nnr_non_script_snippets = 1;
-
-        $currentTime = current_time('Y-m-d H:i:s');
-
-        // Current User
-        $currentUser = wp_get_current_user();
-
-        $displayName = $currentUser->display_name;
-
-        $repository = new ScriptRepository();
-
-        foreach ((array) $nnr_hfcm_snippets['snippets'] as $item) {
-            if ( !empty($item['snippet_type']) && !in_array($item['snippet_type'], $allowSnippetType)) {
-                $nnr_non_script_snippets = 2;
-                continue;
-            }
-
-            if ( !empty($item['location']) && !in_array($item['location'], $allowLocation)) {
-                $nnr_non_script_snippets = 2;
-                continue;
-            }
-
-            // Create new snippet
-            $data = [
-                'name'        => $item['name'],
-                'snippet'     => $item['snippet'],
-                'snippetType' => $item['snippet_type'],
-                'deviceType'  => $item['device_type'],
-                'location'    => $item['location'],
-                'displayOn'   => $item['display_on'],
-                'status'      => 'status',
-                'lpCount'     => max(1, (int) $item['lp_count']),
-
-                'sPages'           => $item['s_pages'] ?? [],
-                'exPages'          => $item['ex_pages'] ?? [],
-                'sPosts'           => $item['s_posts'] ?? [],
-                'exPosts'          => $item['ex_posts'] ?? [],
-                'sCustomPosts'     => $item['s_custom_posts'] ?? [],
-                'sCategories'      => $item['s_categories'] ?? [],
-                'sTags'            => $item['s_tags'] ?? [],
-                'created'          => $currentTime,
-                'createdBy'        => $displayName,
-                'lastModifiedBy'   => $displayName,
-                'lastRevisionDate' => $currentTime,
-            ];
-
-            $lastId = $repository->insert($data);
-        }
-
-        self::hfcm_redirect(admin_url('admin.php?page=hfcm-list&import=' . $nnr_non_script_snippets));
+        self::hfcm_redirect(admin_url('admin.php?page=hfcm-list&import=' . $importStatus));
 
         return true;
     }

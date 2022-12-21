@@ -432,7 +432,7 @@ class ScriptModel
             'created_by'     => (string) $params['createdBy'],
         ];
 
-        $format = [ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',];
+        $format = ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',];
 
         $tableName = $this->getTableName();
 
@@ -643,18 +643,26 @@ class ScriptModel
         return $scripts;
     }
 
-    // 查询指定ID集合
+    /**
+     * @desc 查询指定ID集合
+     * @param $ids
+     * @return array|object|\stdClass[]|null
+     */
     public function selectIncludeIds($ids)
     {
         $ids = (array) $ids;
 
-        $separated = join(',', $ids);
+        $separated = str_repeat('%d,', count($ids));
+
+        if ( !empty($separated)) {
+            $separated = substr($separated, 0, strlen($separated) - 1);
+        }
 
         $tableName = $this->getTableName();
 
-        $sql = "SELECT * FROM `{$tableName}` WHERE `script_id` IN ( %s )";
+        $sql = "SELECT * FROM `{$tableName}` WHERE `script_id` IN ( {$separated} )";
 
-        $sql = $this->db->prepare($sql, $separated);
+        $sql = $this->db->prepare($sql, $ids);
 
         $snippets = $this->db->get_results($sql);
 
