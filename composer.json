@@ -1,0 +1,20 @@
+{
+    "name": "mrzkit/wp-plugin-snippet-code-manager",
+    "description": "WordPress Plugin Snippet Code Manager",
+    "type": "composer-plugin",
+    "license": "GPLv2 or later",
+    "autoload": {
+        "psr-4": {
+            "Mrzkit\\WpPluginSnippetCodeManager\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "shijie.zhu",
+            "email": "kitgor.architect@gmail.com"
+        }
+    ],
+    "require": {
+        "symfony/var-dumper": "^5.4"
+    }
+}
