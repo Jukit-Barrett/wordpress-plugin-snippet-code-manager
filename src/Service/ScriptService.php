@@ -45,7 +45,7 @@ class ScriptService
         }
 
         if ( !empty($ids)) {
-            $snippets = $this->repository->selectIncludeIds($ids);
+            $snippets = ScriptRepository::getInstance()->selectIncludeIds($ids);
 
             if ( !empty($snippets)) {
                 $listSnippets = [

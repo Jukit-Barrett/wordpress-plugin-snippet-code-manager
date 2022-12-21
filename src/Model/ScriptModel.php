@@ -8,8 +8,8 @@ class ScriptModel
 {
     private $db;
 
-//    private $tableName = 'kit_scripts';
-    private $tableName = 'hfcm_scripts';
+    private $tableName = 'kit_scripts';
+//    private $tableName = 'hfcm_scripts';
 
     public function __construct()
     {

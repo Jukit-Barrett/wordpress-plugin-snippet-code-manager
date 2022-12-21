@@ -4,7 +4,6 @@ namespace Mrzkit\WpPluginSnippetCodeManager\Util;
 
 class GeneralUtil
 {
-
     /**
      * @desc
      * @param $data

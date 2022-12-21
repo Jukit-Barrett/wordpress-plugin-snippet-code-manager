@@ -2,10 +2,14 @@
 
 namespace Mrzkit\WpPluginSnippetCodeManager\Extension;
 
+use Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository;
+use Mrzkit\WpPluginSnippetCodeManager\SnippetCodeManager;
 use WP_List_Table;
 
 class SnippetListTableExtension extends WP_List_Table
 {
+    private $repository;
+
     public function __construct()
     {
         $args = [
@@ -15,6 +19,8 @@ class SnippetListTableExtension extends WP_List_Table
         ];
 
         parent::__construct($args);
+
+        $this->repository = new ScriptRepository();
     }
 
     /**
@@ -299,9 +305,7 @@ class SnippetListTableExtension extends WP_List_Table
         $per_page     = $this->get_items_per_page('sippets_per_page', 20);
         $current_page = $this->get_pagenum();
 
-        $repository = new ScriptRepository();
-
-        $total_items = $repository->recordCount();
+        $total_items = $this->repository->recordCount();
 
         $this->set_pagination_args(
             [
@@ -320,14 +324,12 @@ class SnippetListTableExtension extends WP_List_Table
             'name'        => (string) ($_POST['s'] ?? ""),
         ];
 
-        $this->items = $repository->selectSnippets($params);
+        $this->items = $this->repository->selectSnippets($params);
         //$this->items = self::get_snippets($per_page, $current_page, $customvar);
     }
 
     public function get_views()
     {
-        $repository = new ScriptRepository();
-
         $views   = array();
         $current = 'all';
         if ( !empty($_GET['customvar'])) {
@@ -337,17 +339,17 @@ class SnippetListTableExtension extends WP_List_Table
         //All link
         $class        = 'all' === $current ? 'current' : '';
         $all_url      = remove_query_arg('customvar');
-        $views['all'] = '<a href="' . esc_html($all_url) . '" class="' . esc_html($class) . '">' . esc_html__('All', 'header-footer-code-manager') . ' (' . esc_html__($repository->recordCount()) . ')</a>';
+        $views['all'] = '<a href="' . esc_html($all_url) . '" class="' . esc_html($class) . '">' . esc_html__('All', 'header-footer-code-manager') . ' (' . esc_html__($this->repository->recordCount()) . ')</a>';
 
         //Foo link
         $foo_url         = add_query_arg('customvar', 'active');
         $class           = ('active' === $current ? 'current' : '');
-        $views['active'] = '<a href="' . esc_html($foo_url) . '" class="' . esc_html($class) . '">' . esc_html__('Active', 'header-footer-code-manager') . ' (' . esc_html__($repository->recordCount('active')) . ')</a>';
+        $views['active'] = '<a href="' . esc_html($foo_url) . '" class="' . esc_html($class) . '">' . esc_html__('Active', 'header-footer-code-manager') . ' (' . esc_html__($this->repository->recordCount('active')) . ')</a>';
 
         //Bar link
         $bar_url           = add_query_arg('customvar', 'inactive');
         $class             = ('inactive' === $current ? 'current' : '');
-        $views['inactive'] = '<a href="' . esc_html($bar_url) . '" class="' . esc_html($class) . '">' . esc_html__('Inactive', 'header-footer-code-manager') . ' (' . esc_html__($repository->recordCount('inactive')) . ')</a>';
+        $views['inactive'] = '<a href="' . esc_html($bar_url) . '" class="' . esc_html($class) . '">' . esc_html__('Inactive', 'header-footer-code-manager') . ' (' . esc_html__($this->repository->recordCount('inactive')) . ')</a>';
 
         return $views;
     }
@@ -365,8 +367,7 @@ class SnippetListTableExtension extends WP_List_Table
                 if ( !empty($_GET['snippet'])) {
                     $snippet_id = absint($_GET['snippet']);
                     if ( !empty($snippet_id)) {
-                        $repository = new ScriptRepository();
-                        $repository->delete($snippet_id);
+                        $this->repository->delete($snippet_id);
                     }
                 }
 
@@ -386,8 +387,7 @@ class SnippetListTableExtension extends WP_List_Table
             foreach ($delete_ids as $id) {
                 $id = absint($id);
                 if ( !empty($id) && is_int($id)) {
-                    $repository = new ScriptRepository();
-                    $repository->delete($id);
+                    $this->repository->delete($id);
                 }
             }
 
@@ -403,8 +403,7 @@ class SnippetListTableExtension extends WP_List_Table
             foreach ($activate_ids as $id) {
                 $id = absint($id);
                 if ( !empty($id) && is_int($id)) {
-                    $repository = new ScriptRepository();
-                    $repository->activateSnippet($id);
+                    $this->repository->activateSnippet($id);
                 }
             }
 
@@ -420,8 +419,7 @@ class SnippetListTableExtension extends WP_List_Table
             foreach ($delete_ids as $id) {
                 $id = absint($id);
                 if ( !empty($id) && is_int($id)) {
-                    $repository = new ScriptRepository();
-                    $repository->deactivateSnippet($id);
+                    $this->repository->deactivateSnippet($id);
                 }
             }
 

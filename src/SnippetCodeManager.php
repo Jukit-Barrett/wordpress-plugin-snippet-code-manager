@@ -3,19 +3,16 @@
 namespace Mrzkit\WpPluginSnippetCodeManager;
 
 use Mrzkit\WpPluginSnippetCodeManager\Extension\SnippetListTableExtension;
+use Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository;
 use Mrzkit\WpPluginSnippetCodeManager\Service\ScriptService;
 
 class SnippetCodeManager
 {
-    private static $entryFile;
-
-    private $service;
+    protected static $entryFile;
 
     public function __construct($entryFile, $config = [])
     {
-        self::$entryFile = (string) $entryFile;
-
-        $this->service = new ScriptService();
+        static::$entryFile = (string) $entryFile;
     }
 
     /**
@@ -24,7 +21,7 @@ class SnippetCodeManager
      */
     public static function getEntryFile()
     {
-        return static::getEntryFile();
+        return static::$entryFile;
     }
 
     /**
@@ -65,7 +62,7 @@ class SnippetCodeManager
      */
     public function uninstall()
     {
-        $this->service->uninstall();
+        ScriptService::getInstance()->uninstall();
     }
 
     // -----------------
@@ -247,8 +244,7 @@ class SnippetCodeManager
     public static function hfcm_add_plugin_page_settings_link($links)
     {
         $links = array_merge(
-            array('<a href="' . admin_url('admin.php?page=hfcm-list') . '">' . __('Settings') . '</a>'),
-            $links
+            ['<a href="' . admin_url('admin.php?page=hfcm-list') . '">' . __('Settings') . '</a>'], $links
         );
 
         return $links;
@@ -288,8 +284,6 @@ class SnippetCodeManager
         $screen = get_current_screen()->id;
 
         $user_id = get_current_user_id();
-
-        $install_date = get_option(self::$hfcm_activation_date);
 
         if ( !get_user_meta($user_id, 'hfcm_plugin_notice_dismissed') && in_array($screen, $allowed_pages_notices)) {
             ?>
@@ -705,8 +699,6 @@ class SnippetCodeManager
 
             // Get all selected posts
             if (-1 === $id) {
-                $s_posts  = array();
-                $ex_posts = array();
             } else {
                 // Select value to update
                 $script = $repository->getSnippet($id);
@@ -972,8 +964,7 @@ class SnippetCodeManager
     {
         if ( !empty($_POST['nnr_hfcm_snippets']) && !empty($_POST['action']) && ($_POST['action'] == "download") && check_admin_referer('hfcm-nonce')) {
             $snippetIds = $_POST['nnr_hfcm_snippets'];
-            $service    = new ScriptService();
-            $service->exportSnippets($snippetIds);
+            ScriptService::getInstance()->exportSnippets($snippetIds);
             die;
         }
     }
@@ -1017,6 +1008,7 @@ class SnippetCodeManager
         }
 
         $allowSnippetType = ["html", "css", "js"];
+
         $allowLocation    = ['header', 'before_content', 'after_content', 'footer'];
 
         $nnr_non_script_snippets = 1;
