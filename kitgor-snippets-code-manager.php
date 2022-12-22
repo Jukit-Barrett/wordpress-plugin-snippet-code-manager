@@ -10,22 +10,19 @@
  * Domain Path: /languages
  */
 
-require __DIR__ . '/vendor/autoload.php';
-
-if ( !class_exists('WP_List_Table')) {
-    include_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
-}
-
-use Mrzkit\WpPluginSnippetCodeManager\SnippetCodeManager;
-
-$config = [
-    'version' => '',
-];
-
 /**
  * If this file is called directly, abort.
  */
-if (defined('WPINC')) {
-    $snippetCodeManager = new SnippetCodeManager(__FILE__, $config);
-    $snippetCodeManager->launch();
+if ( !defined('WPINC')) {
+    die;
 }
+
+require __DIR__ . '/vendor/autoload.php';
+
+$config = require __DIR__ . '/config.php';
+
+$snippetCodeManager = new \Mrzkit\WpPluginSnippetCodeManager\SnippetCodeManager(
+    $config['entryFile'] ?? __FILE__, $config
+);
+
+$snippetCodeManager->launch();

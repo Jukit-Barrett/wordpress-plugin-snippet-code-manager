@@ -2,11 +2,12 @@
 
 namespace Mrzkit\WpPluginSnippetCodeManager;
 
+use Mrzkit\WpPluginSnippetCodeManager\Contract\Plugin;
 use Mrzkit\WpPluginSnippetCodeManager\Extension\SnippetListTableExtension;
 use Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository;
 use Mrzkit\WpPluginSnippetCodeManager\Service\ScriptService;
 
-class SnippetCodeManager
+class SnippetCodeManager implements Plugin
 {
     protected static $entryFile;
 
@@ -44,17 +45,12 @@ class SnippetCodeManager
     }
 
     /**
-     * @desc 激活
+     * @desc 安装
+     * @return mixed|void
      */
-    public function active()
+    public function install()
     {
-    }
-
-    /**
-     * @desc 停用
-     */
-    public function deactive()
-    {
+        // TODO: Implement install() method.
     }
 
     /**
@@ -66,6 +62,25 @@ class SnippetCodeManager
 
         $service->uninstall();
     }
+
+    /**
+     * @desc 激活
+     * @return mixed|void
+     */
+    public function active()
+    {
+        // TODO: Implement active() method.
+    }
+
+    /**
+     * @desc 禁用
+     * @return mixed|void
+     */
+    public function disable()
+    {
+        // TODO: Implement disable() method.
+    }
+
 
     // -----------------
 
