@@ -6,14 +6,19 @@ use Mrzkit\WpPluginSnippetCodeManager\Contract\Plugin;
 use Mrzkit\WpPluginSnippetCodeManager\Extension\SnippetListTableExtension;
 use Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository;
 use Mrzkit\WpPluginSnippetCodeManager\Service\ScriptService;
+use Mrzkit\WpPluginSnippetCodeManager\Util\GeneralUtil;
 
 class SnippetCodeManager implements Plugin
 {
     protected static $entryFile;
 
+    private $config;
+
     public function __construct($entryFile, $config = [])
     {
         static::$entryFile = (string) $entryFile;
+
+        $this->config = (array) $config;
     }
 
     /**
@@ -26,21 +31,31 @@ class SnippetCodeManager implements Plugin
     }
 
     /**
+     * @return array
+     */
+    public function getConfig()
+    {
+        return $this->config;
+    }
+
+    /**
      * @desc 启动
      */
     public function launch()
     {
-        register_activation_hook(static::getEntryFile(), [__CLASS__, 'hfcm_options_install']);
-        add_action('plugins_loaded', [__CLASS__, 'hfcm_db_update_check']);
+        register_activation_hook(static::getEntryFile(), [$this, 'hfcm_options_install']);
+
+        add_action('plugins_loaded', [$this, 'hfcm_db_update_check']);
+
         add_action('admin_enqueue_scripts', [__CLASS__, 'hfcm_enqueue_assets']);
         add_action('plugins_loaded', [__CLASS__, 'hfcm_load_translation_files']);
         add_action('admin_menu', [__CLASS__, 'hfcm_modifymenu']);
         add_filter('plugin_action_links_' . plugin_basename(static::getEntryFile()), [__CLASS__, 'hfcm_add_plugin_page_settings_link']);
-        add_action('admin_init', [__CLASS__, 'hfcm_init']);
+        add_action('admin_init', [$this, 'hfcm_init']);
         add_shortcode('hfcm', [__CLASS__, 'hfcm_shortcode']);
         add_action('wp_head', [__CLASS__, 'hfcm_header_scripts']);
         add_action('wp_footer', [__CLASS__, 'hfcm_footer_scripts']);
-        add_action('the_content', [__CLASS__, 'hfcm_footer_scripts']);
+        add_action('the_content', [__CLASS__, 'hfcm_content_scripts']);
         add_action('wp_ajax_hfcm-request', [__CLASS__, 'hfcm_request_handler']);
     }
 
@@ -81,51 +96,49 @@ class SnippetCodeManager implements Plugin
         // TODO: Implement disable() method.
     }
 
-
     // -----------------
-
-    public static $nnr_hfcm_db_version  = "1.5";
-    public static $hfcm_activation_date = "hfcm_activation_date";
-    public static $hfcm_db_version      = 'hfcm_db_version';
 
     /**
      * @desc hfcm init function
      */
-    public static function hfcm_init()
+    public function hfcm_init()
     {
-        self::hfcm_check_installation_date();
-        self::hfcm_plugin_notice_dismissed();
-        self::hfcm_import_snippets();
-        self::hfcm_export_snippets();
+        static::hfcm_check_installation_date();
+        static::hfcm_plugin_notice_dismissed();
+        static::hfcm_import_snippets();
+        static::hfcm_export_snippets();
     }
 
     /**
      * @desc function to create the DB / Options / Defaults
      */
-    public static function hfcm_options_install()
+    public function hfcm_options_install()
     {
+        $config = $this->getConfig();
+
         $now = strtotime('now');
-        // get_option();
 
-        add_option(self::$hfcm_activation_date, $now);
+        add_option($config['db_activation_date'], $now);
 
-        update_option(self::$hfcm_activation_date, $now);
+        update_option($config['db_activation_date'], $now);
 
         $repository = new ScriptRepository();
 
         // 初始化数据表
         $repository->createTable();
 
-        add_option(self::$hfcm_db_version, self::$nnr_hfcm_db_version);
+        add_option($config['db_version'], $config['version']);
     }
 
     /**
      * @desc function to check if plugin is being updated
      */
-    public static function hfcm_db_update_check()
+    public function hfcm_db_update_check()
     {
+        $config = $this->getConfig();
+
         // Version Diff
-        if (get_option(self::$hfcm_db_version) != self::$nnr_hfcm_db_version) {
+        if (get_option($config['db_version']) != $config['version']) {
             $repository = new ScriptRepository();
 
             // Check for Exclude Pages
@@ -137,9 +150,9 @@ class SnippetCodeManager implements Plugin
             // Alter Other Fields
             $repository->alterOtherFields();
             // Reinstall
-            self::hfcm_options_install();
+            static::hfcm_options_install();
             // Update Version
-            update_option(self::$hfcm_db_version, self::$nnr_hfcm_db_version);
+            update_option($config['db_version'], $config['version']);
         }
     }
 
@@ -270,9 +283,11 @@ class SnippetCodeManager implements Plugin
     /**
      * @desc function to check the plugins installation date
      */
-    public static function hfcm_check_installation_date()
+    public function hfcm_check_installation_date()
     {
-        $install_date = get_option(self::$hfcm_activation_date);
+        $config = $this->getConfig();
+
+        $install_date = get_option($config['db_activation_date']);
         $past_date    = strtotime('-7 days');
         if ($past_date >= $install_date) {
             add_action('admin_notices', [
@@ -369,7 +384,17 @@ class SnippetCodeManager implements Plugin
      */
     public static function hfcm_render_snippet($scriptData)
     {
-        $output = "<!-- HFCM by 99 Robots - Snippet # " . absint($scriptData->script_id) . ": " . esc_html($scriptData->name) . " -->\n" . html_entity_decode($scriptData->snippet) . "\n<!-- /end HFCM by 99 Robots -->\n";
+        if (is_array($scriptData)) {
+            $scriptId = absint($scriptData['script_id']);
+            $name     = esc_html($scriptData['name']);
+            $snippet  = html_entity_decode($scriptData['snippet']);
+        } else {
+            $scriptId = absint($scriptData->script_id);
+            $name     = esc_html($scriptData->name);
+            $snippet  = html_entity_decode($scriptData->snippet);
+        }
+
+        $output = "<!-- HFCM by 99 Robots - Snippet # " . $scriptId . ": " . $name . " -->\n" . $snippet . "\n<!-- /end HFCM by 99 Robots -->\n";
 
         return $output;
     }
@@ -392,22 +417,6 @@ class SnippetCodeManager implements Plugin
     }
 
     /**
-     * @desc Function to json_decode array and check if empty
-     * @param $scriptdata
-     * @param $prop_name
-     * @return bool
-     */
-    public static function hfcm_not_empty($scriptdata, $prop_name)
-    {
-        $data = json_decode($scriptdata->{$prop_name});
-        if (empty($data)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * @desc function to decide which snippets to show - triggered by hooks
      * @param $location
      * @param $content
@@ -418,107 +427,102 @@ class SnippetCodeManager implements Plugin
         $afterContent  = '';
 
         $repository = new ScriptRepository();
-        $script     = $repository->selectByLocation($location);
+        $script     = $repository->selectDeviceLocation($location);
+
+        $theId = get_the_ID();
 
         if ( !empty($script)) {
-            foreach ($script as $scriptdata) {
+            foreach ($script as $scriptData) {
                 $out = '';
-                switch ($scriptdata->display_on) {
+                switch ($scriptData['display_on']) {
                     case 'All':
-
-                        $is_not_empty_ex_pages = self::hfcm_not_empty($scriptdata, 'ex_pages');
-                        $is_not_empty_ex_posts = self::hfcm_not_empty($scriptdata, 'ex_posts');
-                        if (($is_not_empty_ex_pages && is_page(json_decode($scriptdata->ex_pages))) || ($is_not_empty_ex_posts && is_single(json_decode($scriptdata->ex_posts)))) {
-                            $out = '';
-                        } else {
-                            $out = self::hfcm_render_snippet($scriptdata);
+                        $isRender = true;
+                        if ( !empty($scriptData['ex_pages']) && is_page($scriptData['ex_pages'])) {
+                            $isRender = false;
                         }
+                        if ( !empty($scriptData['ex_posts']) && is_single($scriptData['ex_posts'])) {
+                            $isRender = false;
+                        }
+                        if ($isRender) {
+                            $out = self::hfcm_render_snippet($scriptData);
+                        }
+
                         break;
                     case 'latest_posts':
                         if (is_single()) {
-                            if ( !empty($scriptdata->lp_count)) {
-                                $nnr_hfcm_latest_posts = wp_get_recent_posts(
-                                    ['numberposts' => absint($scriptdata->lp_count),]
-                                );
-                            } else {
-                                $nnr_hfcm_latest_posts = wp_get_recent_posts(
-                                    ['numberposts' => 5]
-                                );
-                            }
+                            $numberPosts = empty($scriptData['lp_count']) ? 5 : absint($scriptData['lp_count']);
 
-                            foreach ($nnr_hfcm_latest_posts as $key => $lpostdata) {
-                                if (get_the_ID() == $lpostdata['ID']) {
-                                    $out = self::hfcm_render_snippet($scriptdata);
+                            $nnr_hfcm_latest_posts = wp_get_recent_posts(
+                                ['numberposts' => $numberPosts,]
+                            );
+
+                            foreach ($nnr_hfcm_latest_posts as $latestPost) {
+                                if ($theId == $latestPost['ID']) {
+                                    $out = self::hfcm_render_snippet($scriptData);
                                 }
                             }
                         }
                         break;
                     case 's_categories':
-                        $is_not_empty_s_categories = self::hfcm_not_empty($scriptdata, 's_categories');
-                        if ($is_not_empty_s_categories && in_category(json_decode($scriptdata->s_categories))) {
-                            if (is_category(json_decode($scriptdata->s_categories))) {
-                                $out = self::hfcm_render_snippet($scriptdata);
-                            }
-                            if ( !is_archive() && !is_home()) {
-                                $out = self::hfcm_render_snippet($scriptdata);
-                            }
+                        if ( !empty($scriptData['s_categories']) && in_category($scriptData['s_categories'])) {
+                            $out = self::hfcm_render_snippet($scriptData);
+                        }
+
+                        if ( !is_archive() && !is_home()) {
+                            $out = self::hfcm_render_snippet($scriptData);
                         }
                         break;
                     case 's_custom_posts':
-                        $is_not_empty_s_custom_posts = self::hfcm_not_empty($scriptdata, 's_custom_posts');
-                        if ($is_not_empty_s_custom_posts && is_singular(json_decode($scriptdata->s_custom_posts))) {
-                            $out = self::hfcm_render_snippet($scriptdata);
+                        if ( !empty($scriptData['s_custom_posts']) && is_singular($scriptData['s_custom_posts'])) {
+                            $out = self::hfcm_render_snippet($scriptData);
                         }
                         break;
                     case 's_posts':
-                        $is_not_empty_s_posts = self::hfcm_not_empty($scriptdata, 's_posts');
-                        if ($is_not_empty_s_posts && is_single(json_decode($scriptdata->s_posts))) {
-                            $out = self::hfcm_render_snippet($scriptdata);
+                        if ( !empty($scriptData['s_posts']) && is_single($scriptData['s_posts'])) {
+                            $out = self::hfcm_render_snippet($scriptData);
                         }
                         break;
                     case 's_is_home':
                         if (is_home() || is_front_page()) {
-                            $out = self::hfcm_render_snippet($scriptdata);
+                            $out = self::hfcm_render_snippet($scriptData);
                         }
                         break;
                     case 's_is_archive':
                         if (is_archive()) {
-                            $out = self::hfcm_render_snippet($scriptdata);
+                            $out = self::hfcm_render_snippet($scriptData);
                         }
                         break;
                     case 's_is_search':
                         if (is_search()) {
-                            $out = self::hfcm_render_snippet($scriptdata);
+                            $out = self::hfcm_render_snippet($scriptData);
                         }
                         break;
                     case 's_pages':
-                        $is_not_empty_s_pages = self::hfcm_not_empty($scriptdata, 's_pages');
-                        if ($is_not_empty_s_pages) {
+                        if ( !empty($scriptData['s_pages'])) {
                             // Gets the page ID of the blog page
                             $blog_page = get_option('page_for_posts');
                             // Checks if the blog page is present in the array of selected pages
-                            if (in_array($blog_page, json_decode($scriptdata->s_pages))) {
-                                if (is_page(json_decode($scriptdata->s_pages)) || ( !is_front_page() && is_home())) {
-                                    $out = self::hfcm_render_snippet($scriptdata);
+                            if (in_array($blog_page, $scriptData['s_pages'])) {
+                                if (is_page($scriptData['s_pages']) || ( !is_front_page() && is_home())) {
+                                    $out = self::hfcm_render_snippet($scriptData);
                                 }
-                            } elseif (is_page(json_decode($scriptdata->s_pages))) {
-                                $out = self::hfcm_render_snippet($scriptdata);
+                            } elseif (is_page($scriptData['s_pages'])) {
+                                $out = self::hfcm_render_snippet($scriptData);
                             }
                         }
                         break;
                     case 's_tags':
-                        $is_not_empty_s_tags = self::hfcm_not_empty($scriptdata, 's_tags');
-                        if ($is_not_empty_s_tags && has_tag(json_decode($scriptdata->s_tags))) {
-                            if (is_tag(json_decode($scriptdata->s_tags))) {
-                                $out = self::hfcm_render_snippet($scriptdata);
+                        if ( !empty($scriptData['s_tags']) && has_tag($scriptData['s_tags'])) {
+                            if (is_tag($scriptData['s_tags'])) {
+                                $out = self::hfcm_render_snippet($scriptData);
                             }
                             if ( !is_archive() && !is_home()) {
-                                $out = self::hfcm_render_snippet($scriptdata);
+                                $out = self::hfcm_render_snippet($scriptData);
                             }
                         }
                 }
 
-                switch ($scriptdata->location) {
+                switch ($scriptData['location']) {
                     case 'before_content':
                         $beforecontent .= $out;
                         break;
@@ -582,56 +586,6 @@ class SnippetCodeManager implements Plugin
 
         // Enqueued script with localized data.
         wp_enqueue_script('hfcm_redirection');
-    }
-
-    /**
-     * @desc function to sanitize POST data
-     * @param $key
-     * @param $is_not_snippet
-     */
-    public static function hfcm_sanitize_text($key, $is_not_snippet = true)
-    {
-        if ( !empty($_POST['data'][$key])) {
-            $post_data = stripslashes_deep($_POST['data'][$key]);
-            if ($is_not_snippet) {
-                $post_data = sanitize_text_field($post_data);
-            } else {
-                $post_data = htmlentities($post_data);
-            }
-
-            return $post_data;
-        }
-
-        return '';
-    }
-
-    /**
-     * @desc function to sanitize strings within POST data arrays
-     * @param $key
-     * @param $type
-     */
-    public static function hfcm_sanitize_array($key, $type = 'integer')
-    {
-        if ( !empty($_POST['data'][$key])) {
-            $arr = $_POST['data'][$key];
-
-            if ( !is_array($arr)) {
-                return array();
-            }
-
-            if ('integer' === $type) {
-                return array_map('absint', $arr);
-            } else { // strings
-                $new_array = array();
-                foreach ($arr as $val) {
-                    $new_array[] = sanitize_text_field($val);
-                }
-            }
-
-            return $new_array;
-        }
-
-        return array();
     }
 
     /*
@@ -770,7 +724,7 @@ class SnippetCodeManager implements Plugin
                         }
 
                         $json_output['posts'][] = array(
-                            'text'  => sanitize_text_field($nnr_hfcm_post_title),
+                            'text'  => GeneralUtil::sanitizeText($nnr_hfcm_post_title),
                             'value' => $pdata->ID,
                         );
                     }
@@ -990,7 +944,7 @@ class SnippetCodeManager implements Plugin
     /*
      * function to import snippets
      */
-    public static function hfcm_import_snippets()
+    public function hfcm_import_snippets()
     {
         if (empty($_FILES['nnr_hfcm_import_file']['tmp_name'])) {
             return false;

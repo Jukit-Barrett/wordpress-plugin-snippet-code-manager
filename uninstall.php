@@ -1,8 +1,14 @@
 <?php
 
-use Mrzkit\WpPluginSnippetCodeManager\SnippetCodeManager;
-
 if (defined('WP_UNINSTALL_PLUGIN')) {
-    $snippetCodeManager = new SnippetCodeManager(__FILE__);
-    $snippetCodeManager->uninstall();
+    die;
 }
+
+require __DIR__ . '/vendor/autoload.php';
+
+$config = require __DIR__ . '/config.php';
+
+$snippetCodeManager = new \Mrzkit\WpPluginSnippetCodeManager\SnippetCodeManager(__FILE__, $config);
+
+$snippetCodeManager->uninstall();
+

@@ -21,8 +21,6 @@ require __DIR__ . '/vendor/autoload.php';
 
 $config = require __DIR__ . '/config.php';
 
-$snippetCodeManager = new \Mrzkit\WpPluginSnippetCodeManager\SnippetCodeManager(
-    $config['entryFile'] ?? __FILE__, $config
-);
+$snippetCodeManager = new \Mrzkit\WpPluginSnippetCodeManager\SnippetCodeManager(__FILE__, $config);
 
 $snippetCodeManager->launch();

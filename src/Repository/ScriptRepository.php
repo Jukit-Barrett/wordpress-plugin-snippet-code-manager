@@ -147,7 +147,7 @@ class ScriptRepository
     // Record Count
     public function recordCount($customVar = 'all')
     {
-        $customVar = sanitize_text_field($customVar);
+        $customVar = GeneralUtil::sanitizeText($customVar);
 
         return $this->model->recordCount($customVar);
     }
@@ -200,13 +200,13 @@ class ScriptRepository
             $params['order'] = sanitize_sql_orderby($params['order']);
         }
         if (isset($params['status'])) {
-            $params['status'] = sanitize_text_field($params['status']);
+            $params['status'] = GeneralUtil::sanitizeText($params['status']);
         }
         if (isset($params['snippetType'])) {
-            $params['snippetType'] = sanitize_text_field($params['snippetType']);
+            $params['snippetType'] = GeneralUtil::sanitizeText($params['snippetType']);
         }
         if (isset($params['name'])) {
-            $params['name'] = sanitize_text_field($params['name']);
+            $params['name'] = GeneralUtil::sanitizeText($params['name']);
         }
 
         $result = $this->model->selectSnippets($params);
@@ -228,17 +228,17 @@ class ScriptRepository
         $params['sCustomPosts'] = GeneralUtil::sanitizeArray($params['sCustomPosts']);
         $params['sCategories']  = GeneralUtil::sanitizeArray($params['sCategories']);
         $params['sTags']        = GeneralUtil::sanitizeArray($params['sTags']);
-        $params['snippet']      = htmlspecialchars_decode($params['snippet']);
+        $params['snippet']      = htmlspecialchars_decode(stripslashes_deep($params['snippet']));
 
         $data = [
-            'name'         => sanitize_text_field($params['name']),
+            'name'         => GeneralUtil::sanitizeText($params['name']),
             'snippet'      => htmlentities($params['snippet']),
-            'snippetType'  => sanitize_text_field($params['snippetType']),
-            'deviceType'   => sanitize_text_field($params['deviceType']),
-            'location'     => sanitize_text_field($params['location']),
-            'displayOn'    => sanitize_text_field($params['displayOn']),
-            'status'       => sanitize_text_field($params['status']),
-            'lpCount'      => sanitize_text_field($params['lpCount']),
+            'snippetType'  => GeneralUtil::sanitizeText($params['snippetType']),
+            'deviceType'   => GeneralUtil::sanitizeText($params['deviceType']),
+            'location'     => GeneralUtil::sanitizeText($params['location']),
+            'displayOn'    => GeneralUtil::sanitizeText($params['displayOn']),
+            'status'       => GeneralUtil::sanitizeText($params['status']),
+            'lpCount'      => GeneralUtil::sanitizeText($params['lpCount']),
             'sPages'       => wp_json_encode($params['sPages']),
             'exPages'      => wp_json_encode($params['exPages']),
             'sPosts'       => wp_json_encode($params['sPosts']),
@@ -247,7 +247,7 @@ class ScriptRepository
             'sCategories'  => wp_json_encode($params['sCategories']),
             'sTags'        => wp_json_encode($params['sTags']),
             'created'      => current_time('Y-m-d H:i:s'),
-            'createdBy'    => sanitize_text_field($params['createdBy']),
+            'createdBy'    => GeneralUtil::sanitizeText($params['createdBy']),
         ];
 
         return $this->model->insert($data);
@@ -257,7 +257,7 @@ class ScriptRepository
     public function update($id, $params)
     {
         if (isset($params['name'])) {
-            $data['name'] = sanitize_text_field($params['name']);
+            $data['name'] = GeneralUtil::sanitizeText($params['name']);
         }
 
         if (isset($params['snippet'])) {
@@ -265,26 +265,26 @@ class ScriptRepository
         }
 
         if (isset($params['snippetType'])) {
-            $data['snippetType'] = sanitize_text_field($params['snippetType']);
+            $data['snippetType'] = GeneralUtil::sanitizeText($params['snippetType']);
         }
 
         if (isset($params['deviceType'])) {
-            $data['deviceType'] = sanitize_text_field($params['deviceType']);
+            $data['deviceType'] = GeneralUtil::sanitizeText($params['deviceType']);
         }
 
         if (isset($params['location'])) {
-            $data['location'] = sanitize_text_field($params['location']);
+            $data['location'] = GeneralUtil::sanitizeText($params['location']);
         }
         if (isset($params['displayOn'])) {
-            $data['displayOn'] = sanitize_text_field($params['displayOn']);
+            $data['displayOn'] = GeneralUtil::sanitizeText($params['displayOn']);
         }
 
         if (isset($params['status'])) {
-            $data['status'] = sanitize_text_field($params['status']);
+            $data['status'] = GeneralUtil::sanitizeText($params['status']);
         }
 
         if (isset($params['lpCount'])) {
-            $data['lp_count'] = sanitize_text_field($params['lpCount']);
+            $data['lp_count'] = GeneralUtil::sanitizeText($params['lpCount']);
         }
 
         if (isset($params['sPages'])) {
@@ -318,11 +318,11 @@ class ScriptRepository
         }
 
         if (isset($params['createdBy'])) {
-            $data['createdBy'] = sanitize_text_field($params['createdBy']);
+            $data['createdBy'] = GeneralUtil::sanitizeText($params['createdBy']);
         }
 
         if (isset($params['lastModifiedBy'])) {
-            $data['last_modified_by'] = sanitize_text_field($params['lastModifiedBy']);
+            $data['last_modified_by'] = GeneralUtil::sanitizeText($params['lastModifiedBy']);
         }
 
         $result = $this->model->update($id, $data);
@@ -330,14 +330,42 @@ class ScriptRepository
         return $result;
     }
 
-    // 通过位置查询代码片断
+    /**
+     * @desc 通过位置查询代码片断
+     * @param $location
+     * @return array
+     */
     public function selectByLocation($location)
     {
         $hideDevice = wp_is_mobile() ? 'desktop' : 'mobile';
 
         $result = $this->model->selectByLocation($hideDevice, $location);
 
-        return $result;
+        foreach ($result as $item) {
+            $list[] = $this->renderHandleIterator($item);
+        }
+
+        return $list;
+    }
+
+    /**
+     * @desc 通过设备和位置查询代码片断
+     * @param $location
+     * @return array
+     */
+    public function selectDeviceLocation($location)
+    {
+        $device = wp_is_mobile() ? 'mobile' : 'desktop';
+
+        $result = $this->model->selectDeviceLocation($device, $location);
+
+        $list = [];
+
+        foreach ($result as $item) {
+            $list[] = $this->renderHandleIterator($item);
+        }
+
+        return $list;
     }
 
     // 查询所有代码片断
@@ -356,5 +384,44 @@ class ScriptRepository
         $result = $this->model->selectIncludeIds($ids);
 
         return $result;
+    }
+
+    /**
+     * @desc 对查询的数据进行处理
+     * @param $script
+     * @return array
+     */
+    protected function renderHandleIterator($script)
+    {
+        $script = (array) $script;
+
+        if (empty($script)) {
+            return [];
+        }
+
+        $data = [
+            'script_id'          => (int) $script['script_id'],
+            'name'               => $script['name'],
+            'snippet'            => $script['snippet'],
+            'snippet_type'       => $script['snippet_type'],
+            'device_type'        => $script['device_type'],
+            'location'           => $script['location'],
+            'display_on'         => $script['display_on'],
+            'lp_count'           => $script['lp_count'],
+            's_pages'            => json_decode($script['s_pages'], true),
+            'ex_pages'           => json_decode($script['ex_pages'], true),
+            's_posts'            => json_decode($script['s_posts'], true),
+            'ex_posts'           => json_decode($script['ex_posts'], true),
+            's_custom_posts'     => json_decode($script['s_custom_posts'], true),
+            's_categories'       => json_decode($script['s_categories'], true),
+            's_tags'             => json_decode($script['s_tags'], true),
+            'status'             => $script['status'],
+            'created_by'         => $script['created_by'],
+            'last_modified_by'   => $script['last_modified_by'],
+            'created'            => $script['created'],
+            'last_revision_date' => $script['last_revision_date'],
+        ];
+
+        return $data;
     }
 }

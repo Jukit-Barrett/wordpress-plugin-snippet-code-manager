@@ -4,6 +4,7 @@ namespace Mrzkit\WpPluginSnippetCodeManager\Extension;
 
 use Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository;
 use Mrzkit\WpPluginSnippetCodeManager\SnippetCodeManager;
+use Mrzkit\WpPluginSnippetCodeManager\Util\GeneralUtil;
 use WP_List_Table;
 
 class SnippetListTableExtension extends WP_List_Table
@@ -179,7 +180,7 @@ class SnippetListTableExtension extends WP_List_Table
         if ( !empty($nnr_current_screen->parent_base)) {
             $page = $nnr_current_screen->parent_base;
         } else {
-            $page = sanitize_text_field($_GET['page']);
+            $page = GeneralUtil::sanitizeText($_GET['page']);
         }
         $actions = array(
             'edit'   => sprintf('<a href="?page=%s&action=%s&id=%s&_wpnonce=%s">' . esc_html__('Edit', 'header-footer-code-manager') . '</a>', esc_attr('hfcm-update'), 'edit', absint($item['script_id']), $edit_nonce),
@@ -248,7 +249,7 @@ class SnippetListTableExtension extends WP_List_Table
     public function extra_tablenav($which)
     {
         if ('top' === $which) {
-            $query        = isset($_POST['snippet_type']) ? sanitize_text_field($_POST['snippet_type']) : '';
+            $query        = isset($_POST['snippet_type']) ? GeneralUtil::sanitizeText($_POST['snippet_type']) : '';
             $snippet_type = array(
                 'html' => esc_html__('HTML', 'header-footer-code-manager'),
                 'css'  => esc_html__('CSS', 'header-footer-code-manager'),
@@ -290,7 +291,7 @@ class SnippetListTableExtension extends WP_List_Table
 
         $customvar = 'all';
         if ( !empty($_GET['customvar'])) {
-            $customvar = sanitize_text_field($_GET['customvar']);
+            $customvar = GeneralUtil::sanitizeText($_GET['customvar']);
             if (empty($customvar) || !in_array($customvar, ['inactive', 'active', 'all'])) {
                 $customvar = 'all';
             }
@@ -333,7 +334,7 @@ class SnippetListTableExtension extends WP_List_Table
         $views   = array();
         $current = 'all';
         if ( !empty($_GET['customvar'])) {
-            $current = sanitize_text_field($_GET['customvar']);
+            $current = GeneralUtil::sanitizeText($_GET['customvar']);
         }
 
         //All link
@@ -359,7 +360,7 @@ class SnippetListTableExtension extends WP_List_Table
         //Detect when a bulk action is being triggered...
         if ('delete' === $this->current_action()) {
             // In our file that handles the request, verify the nonce.
-            $nonce = sanitize_text_field($_REQUEST['_wpnonce']);
+            $nonce = GeneralUtil::sanitizeText($_REQUEST['_wpnonce']);
 
             if ( !wp_verify_nonce($nonce, 'hfcm_delete_snippet')) {
                 die('Go get a life script kiddies');

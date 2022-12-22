@@ -21,11 +21,23 @@ class GeneralUtil
             if (is_array($item)) {
                 $list[$key] = self::sanitizeArray($item);
             } else {
-                $list[$key] = sanitize_text_field($item);
+                $list[$key] = self::sanitizeText($item);
             }
         }
 
         return $list;
+    }
+
+    /**
+     * @desc
+     * @param $data
+     * @return string
+     */
+    public static function sanitizeText($data)
+    {
+        $data = stripslashes_deep($data);
+
+        return sanitize_text_field($data);
     }
 
 }

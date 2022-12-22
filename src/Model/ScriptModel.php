@@ -9,6 +9,7 @@ class ScriptModel
     private $db;
 
     private $tableName = 'kit_scripts';
+
 //    private $tableName = 'hfcm_scripts';
 
     public function __construct()
@@ -626,7 +627,43 @@ class ScriptModel
 
         $sql = $this->db->prepare($sql, $placeholderArgs);
 
-        $scripts = $this->db->get_results($sql);
+        $scripts = $this->db->get_results($sql, ARRAY_A);
+
+        return $scripts;
+    }
+
+    /**
+     * @desc
+     * @param string $device 设备
+     * @param string $location 位置
+     * @return array|object|\stdClass[]|null
+     */
+    public function selectDeviceLocation($device, $location)
+    {
+        $tableName   = $this->getTableName();
+
+        $placeholder = [];
+
+        $sql = "SELECT * FROM `{$tableName}` WHERE `status`='active' ";
+
+        if (in_array($device, ['desktop', 'mobile'])) {
+            $sql           .= " AND `device_type` In ( %s, 'both' )";
+            $placeholder[] = $device;
+        }
+
+        if (in_array($location, ['header', 'footer', 'before_content', 'after_content'])) {
+            $sql           .= " AND `location` = %s";
+            $placeholder[] = $location;
+        } else {
+            // $location = false
+            $sql           .= " AND `location` IN ('before_content', 'after_content')";
+        }
+
+        $sql .= ' LIMIT 20000 ';
+
+        $sql = $this->db->prepare($sql, $placeholder);
+
+        $scripts = $this->db->get_results($sql, ARRAY_A);
 
         return $scripts;
     }
