@@ -117,8 +117,10 @@ $nnr_hfcm_status_array = array(
     'inactive' => __('Inactive', 'header-footer-code-manager')
 );
 
-$nnr_hfcm_categories         = SnippetCodeManager::hfcm_get_categories();
-$nnr_hfcm_tags               = SnippetCodeManager::hfcm_get_tags();
+$repository = new \Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository();
+
+$nnr_hfcm_categories         = $repository->getCategories();
+$nnr_hfcm_tags               = $repository->getTags();
 $nnr_hfcm_categories_style   = 's_categories' === $display_on ? '' : 'display:none;';
 $nnr_hfcm_tags_style         = 's_tags' === $display_on ? '' : 'display:none;';
 $nnr_hfcm_custom_posts_style = 's_custom_posts' === $display_on ? '' : 'display:none;';
@@ -132,7 +134,6 @@ $operator                   = 'and';
 $nnr_hfcm_custom_post_types = get_post_types($args, $output, $operator);
 
 ?>
-
 <div class="wrap">
     <h1>
         <?= $data['title']; ?>

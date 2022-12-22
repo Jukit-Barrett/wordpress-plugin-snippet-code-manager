@@ -116,7 +116,7 @@ class ScriptRepository
 
         $script = $this->model->selectWithoutDeviceType($id, $hideDevice);
 
-        return empty($script) ? [] : $script[0];
+        return $script;
     }
 
     // 激活片段
@@ -416,5 +416,77 @@ class ScriptRepository
         ];
 
         return get_posts($params);
+    }
+
+    /**
+     * @desc Get Categories
+     * @return array
+     */
+    public function getCategories()
+    {
+        $args = [
+            'public'       => true,
+            'hierarchical' => true,
+        ];
+
+        $output     = 'objects'; // or objects
+        $operator   = 'and'; // 'and' or 'or'
+        $taxonomies = get_taxonomies($args, $output, $operator);
+
+        $categories = [];
+
+        foreach ($taxonomies as $taxonomy) {
+            $taxonomyCategories = get_categories(
+                [
+                    'taxonomy'   => $taxonomy->name,
+                    'hide_empty' => 0
+                ]
+            );
+
+            $taxonomyCategories = [
+                'name'  => $taxonomy->label,
+                'terms' => $taxonomyCategories
+            ];
+
+            $categories[] = $taxonomyCategories;
+        }
+
+        return $categories;
+    }
+
+    /**
+     * @desc Get Tags
+     * @return array
+     */
+    public function getTags()
+    {
+        $args = [
+            'public'       => true,
+            'hierarchical' => false,
+        ];
+
+        $output     = 'objects'; // or objects
+        $operator   = 'and'; // 'and' or 'or'
+        $taxonomies = get_taxonomies($args, $output, $operator);
+
+        $tags = [];
+
+        foreach ($taxonomies as $taxonomy) {
+            $taxonomyTags = get_tags(
+                [
+                    'taxonomy'   => $taxonomy->name,
+                    'hide_empty' => 0
+                ]
+            );
+
+            $taxonomyTags = [
+                'name'  => $taxonomy->label,
+                'terms' => $taxonomyTags
+            ];
+
+            $tags[] = $taxonomyTags;
+        }
+
+        return $tags;
     }
 }

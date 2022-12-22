@@ -304,7 +304,7 @@ class ScriptModel
      * @desc 查询指定设备类型之外的
      * @param int $id
      * @param string $deviceType
-     * @return array|object|stdClass[]|null
+     * @return \stdClass
      */
     public function selectWithoutDeviceType($id, $deviceType)
     {
@@ -314,7 +314,7 @@ class ScriptModel
 
         $sql = $this->db->prepare($sql, $deviceType, $id);
 
-        return $this->db->get_results($sql);
+        return $this->db->get_row($sql);
     }
 
     /**

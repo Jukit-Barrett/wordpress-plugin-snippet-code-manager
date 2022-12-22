@@ -2,6 +2,7 @@
 
 namespace Mrzkit\WpPluginSnippetCodeManager\Service;
 
+use Mrzkit\WpPluginSnippetCodeManager\Repository\OptionRepository;
 use Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository;
 use Mrzkit\WpPluginSnippetCodeManager\Util\GeneralUtil;
 
@@ -9,9 +10,13 @@ class ScriptService
 {
     private $repository;
 
+    private $optionRepository;
+
     public function __construct()
     {
         $this->repository = new ScriptRepository();
+
+        $this->optionRepository = new OptionRepository();
     }
 
     /**
@@ -22,7 +27,9 @@ class ScriptService
         // Drop a custom db table
         $this->repository->dropTable();
 
-        delete_option('hfcm_db_version');
+        // Delete Version
+        $this->optionRepository->deleteVersion();
+        $this->optionRepository->deleteActivationDate();
     }
 
     /**

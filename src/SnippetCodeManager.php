@@ -4,9 +4,9 @@ namespace Mrzkit\WpPluginSnippetCodeManager;
 
 use Mrzkit\WpPluginSnippetCodeManager\Contract\Plugin;
 use Mrzkit\WpPluginSnippetCodeManager\Extension\SnippetListTableExtension;
+use Mrzkit\WpPluginSnippetCodeManager\Repository\OptionRepository;
 use Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository;
 use Mrzkit\WpPluginSnippetCodeManager\Service\ScriptService;
-use Mrzkit\WpPluginSnippetCodeManager\Util\GeneralUtil;
 
 class SnippetCodeManager implements Plugin
 {
@@ -50,7 +50,7 @@ class SnippetCodeManager implements Plugin
         add_action('admin_menu', [__CLASS__, 'hfcm_modifymenu']);
         add_filter('plugin_action_links_' . plugin_basename(static::getEntryFile()), [__CLASS__, 'hfcm_add_plugin_page_settings_link']);
         add_action('admin_init', [$this, 'hfcm_init']);
-        add_shortcode('hfcm', [__CLASS__, 'hfcm_shortcode']);
+        add_shortcode('hfcm', [$this, 'hfcm_shortcode']);
         add_action('wp_head', [__CLASS__, 'hfcm_header_scripts']);
         add_action('wp_footer', [__CLASS__, 'hfcm_footer_scripts']);
         add_action('the_content', [__CLASS__, 'hfcm_content_scripts']);
@@ -122,20 +122,22 @@ class SnippetCodeManager implements Plugin
      */
     public function hfcm_options_install()
     {
-        $config = $this->getConfig();
-
         $now = strtotime('now');
 
-        add_option($config['db_activation_date'], $now);
+        $optionRepository = new OptionRepository();
 
-        update_option($config['db_activation_date'], $now);
+        $optionRepository->addActivationDate($now);
+
+        $optionRepository->updateActivationDate($now);
 
         $repository = new ScriptRepository();
+
+        $config = $this->getConfig();
 
         // 初始化数据表
         $repository->createTable();
 
-        add_option($config['db_version'], $config['version']);
+        $optionRepository->addVersion($config['version']);
     }
 
     /**
@@ -145,8 +147,12 @@ class SnippetCodeManager implements Plugin
     {
         $config = $this->getConfig();
 
+        $optionRepository = new OptionRepository();
+
+        $version = $optionRepository->getVersion();
+
         // Version Diff
-        if (get_option($config['db_version']) != $config['version']) {
+        if ($version != $config['version']) {
             $repository = new ScriptRepository();
 
             // Check for Exclude Pages
@@ -160,7 +166,7 @@ class SnippetCodeManager implements Plugin
             // Reinstall
             static::hfcm_options_install();
             // Update Version
-            update_option($config['db_version'], $config['version']);
+            $optionRepository->updateVersion($config['version']);
         }
     }
 
@@ -293,10 +299,12 @@ class SnippetCodeManager implements Plugin
      */
     public function hfcm_check_installation_date()
     {
-        $config = $this->getConfig();
+        $optionRepository = new OptionRepository();
 
-        $install_date = get_option($config['db_activation_date']);
-        $past_date    = strtotime('-7 days');
+        $install_date = $optionRepository->getActivationDate();
+
+        $past_date = strtotime('-7 days');
+
         if ($past_date >= $install_date) {
             add_action('admin_notices', [
                 self::class,
@@ -411,17 +419,21 @@ class SnippetCodeManager implements Plugin
      * @desc function to implement shortcode
      * @param $atts
      */
-    public static function hfcm_shortcode($atts)
+    public function hfcm_shortcode($atts)
     {
-        if ( !empty($atts['id'])) {
-            $repository = new ScriptRepository();
-            $script     = $repository->selectWithoutDeviceType($atts['id']);
-            if ( !empty($script)) {
-                return self::hfcm_render_snippet($script);
-            }
+        if (empty($atts['id'])) {
+            return '';
         }
 
-        return '';
+        $repository = new ScriptRepository();
+
+        $script = $repository->selectWithoutDeviceType($atts['id']);
+
+        if (empty($script)) {
+            return '';
+        }
+
+        return self::hfcm_render_snippet($script);
     }
 
     /**
@@ -507,8 +519,10 @@ class SnippetCodeManager implements Plugin
                         break;
                     case 's_pages':
                         if ( !empty($scriptData['s_pages'])) {
+                            $optionRepository = new OptionRepository();
+
                             // Gets the page ID of the blog page
-                            $blog_page = get_option('page_for_posts');
+                            $blog_page = $optionRepository->getPageForPosts();
                             // Checks if the blog page is present in the array of selected pages
                             if (in_array($blog_page, $scriptData['s_pages'])) {
                                 if (is_page($scriptData['s_pages']) || ( !is_front_page() && is_home())) {
@@ -580,17 +594,19 @@ class SnippetCodeManager implements Plugin
         }
     }
 
-    /*
-        * load redirection Javascript code
-        */
+    /**
+     * @desc load redirection Javascript code
+     * @param $url
+     */
     public static function hfcm_redirect($url = '')
     {
         // Register the script
         wp_register_script('hfcm_redirection', plugins_url('assets/js/location.js', static::getEntryFile()));
 
         // Localize the script with new data
-        $translation_array = array('url' => $url);
-        wp_localize_script('hfcm_redirection', 'hfcm_location', $translation_array);
+        wp_localize_script('hfcm_redirection', 'hfcm_location', [
+            'url' => $url,
+        ]);
 
         // Enqueued script with localized data.
         wp_enqueue_script('hfcm_redirection');
@@ -621,7 +637,7 @@ class SnippetCodeManager implements Plugin
             self::hfcm_redirect(admin_url('admin.php?page=hfcm-update&message=1&id=' . $id));
         } elseif (isset($_POST['get_posts'])) {
             // JSON return posts for AJAX
-            $id = absint($_REQUEST['id']);
+            $id          = absint($_REQUEST['id']);
             $json_output = $service->getPosts($id);
             echo wp_json_encode($json_output);
             wp_die();
@@ -825,7 +841,7 @@ class SnippetCodeManager implements Plugin
     /*
        * function to export snippets
        */
-    public static function hfcm_export_snippets()
+    public function hfcm_export_snippets()
     {
         if ( !empty($_POST['nnr_hfcm_snippets']) && !empty($_POST['action']) && ($_POST['action'] == "download") && check_admin_referer('hfcm-nonce')) {
             $snippetIds = $_POST['nnr_hfcm_snippets'];
@@ -896,62 +912,4 @@ class SnippetCodeManager implements Plugin
         return false;
     }
 
-    public static function hfcm_get_categories()
-    {
-        $args = [
-            'public'       => true,
-            'hierarchical' => true,
-        ];
-
-        $output     = 'objects'; // or objects
-        $operator   = 'and'; // 'and' or 'or'
-        $taxonomies = get_taxonomies($args, $output, $operator);
-
-        $nnr_hfcm_categories = [];
-
-        foreach ($taxonomies as $taxonomy) {
-            $nnr_hfcm_taxonomy_categories = get_categories(
-                [
-                    'taxonomy'   => $taxonomy->name,
-                    'hide_empty' => 0
-                ]
-            );
-            $nnr_hfcm_taxonomy_categories = [
-                'name'  => $taxonomy->label,
-                'terms' => $nnr_hfcm_taxonomy_categories
-            ];
-            $nnr_hfcm_categories[]        = $nnr_hfcm_taxonomy_categories;
-        }
-
-        return $nnr_hfcm_categories;
-    }
-
-    public static function hfcm_get_tags()
-    {
-        $args       = [
-            'public'       => true,
-            'hierarchical' => false,
-        ];
-        $output     = 'objects'; // or objects
-        $operator   = 'and'; // 'and' or 'or'
-        $taxonomies = get_taxonomies($args, $output, $operator);
-
-        $nnr_hfcm_tags = [];
-
-        foreach ($taxonomies as $taxonomy) {
-            $nnr_hfcm_taxonomy_tags = get_tags(
-                [
-                    'taxonomy'   => $taxonomy->name,
-                    'hide_empty' => 0
-                ]
-            );
-            $nnr_hfcm_taxonomy_tags = [
-                'name'  => $taxonomy->label,
-                'terms' => $nnr_hfcm_taxonomy_tags
-            ];
-            $nnr_hfcm_tags[]        = $nnr_hfcm_taxonomy_tags;
-        }
-
-        return $nnr_hfcm_tags;
-    }
 }

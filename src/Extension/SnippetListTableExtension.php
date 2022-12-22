@@ -156,9 +156,7 @@ class SnippetListTableExtension extends WP_List_Table
      */
     public function column_cb($item)
     {
-        return sprintf(
-            '<input type="checkbox" name="snippets[]" value="%s" />', $item['script_id']
-        );
+        return sprintf('<input type="checkbox" name="snippets[]" value="%s" />', $item['script_id']);
     }
 
     /**
@@ -326,7 +324,6 @@ class SnippetListTableExtension extends WP_List_Table
         ];
 
         $this->items = $this->repository->selectSnippets($params);
-        //$this->items = self::get_snippets($per_page, $current_page, $customvar);
     }
 
     public function get_views()
