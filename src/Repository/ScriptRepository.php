@@ -14,19 +14,27 @@ class ScriptRepository
         $this->model = new ScriptModel();
     }
 
-    // Create Table
+    /**
+     * @desc Create Table
+     * @return array
+     */
     public function createTable()
     {
         return $this->model->createTable();
     }
 
-    // Drop Table
+    /**
+     * @desc Drop Table
+     * @return bool|int|\mysqli_result|resource|null
+     */
     public function dropTable()
     {
         return $this->model->dropTable();
     }
 
-    // Check for Exclude Pages
+    /**
+     * @desc Check for Exclude Pages
+     */
     public function checkExcludePage()
     {
         $exPages = $this->model->getColumn('ex_pages');
@@ -36,17 +44,21 @@ class ScriptRepository
         }
     }
 
-    // Check for Exclude Posts
+    /**
+     * @desc Check for Exclude Posts
+     */
     public function checkExcludePosts()
     {
         $exPosts = $this->model->getColumn('ex_posts');
 
         if (empty($exPosts)) {
-            $this->model->alterColumnExPages();
+            $this->model->alterColumnExPosts();
         }
     }
 
-    // Check for Snippet Type
+    /**
+     * @desc Check for Snippet Type
+     */
     public function checkSnippetType()
     {
         $snippetType = $this->model->getColumn('snippet_type');
@@ -56,7 +68,9 @@ class ScriptRepository
         }
     }
 
-    // Alter Other Fields
+    /**
+     * @desc Alter Other Fields
+     */
     public function alterOtherFields()
     {
         $this->model->alterSnippet();
@@ -64,7 +78,11 @@ class ScriptRepository
         $this->model->alterSPages();
     }
 
-    // Delete
+    /**
+     * @desc Delete
+     * @param $id
+     * @return bool|int|\mysqli_result|resource|null
+     */
     public function delete($id)
     {
         $id = (int) $id;
@@ -72,7 +90,11 @@ class ScriptRepository
         return $this->model->delete($id);
     }
 
-    // Batch Delete
+    /**
+     * @desc Batch Delete
+     * @param $ids
+     * @return bool|int|\mysqli_result|resource|null
+     */
     public function batchDelete($ids)
     {
         $ids = (array) $ids;
@@ -85,7 +107,11 @@ class ScriptRepository
         return $this->model->batchDelete($ids);
     }
 
-    // Get Snippet
+    /**
+     * @desc Get Snippet
+     * @param $id
+     * @return array
+     */
     public function getSnippet($id)
     {
         $snippet = $this->model->getSnippet($id);
@@ -95,7 +121,11 @@ class ScriptRepository
         return $snippet;
     }
 
-    // Record Count
+    /**
+     * @desc 行数
+     * @param $customVar
+     * @return string|null
+     */
     public function recordCount($customVar = 'all')
     {
         $customVar = GeneralUtil::sanitizeText($customVar);
@@ -110,7 +140,7 @@ class ScriptRepository
      */
     public function selectWithoutDeviceType($id)
     {
-        $id = absint($id);
+        $id = (int) $id;
 
         $hideDevice = wp_is_mobile() ? 'desktop' : 'mobile';
 
@@ -119,7 +149,11 @@ class ScriptRepository
         return $script;
     }
 
-    // 激活片段
+    /**
+     * @desc 激活片段
+     * @param $id
+     * @return bool|int|\mysqli_result|resource|null
+     */
     public function activateSnippet($id)
     {
         $id = (int) $id;
@@ -127,7 +161,11 @@ class ScriptRepository
         return $this->model->activateSnippet($id);
     }
 
-    // 禁用片段
+    /**
+     * @desc 禁用片段
+     * @param $id
+     * @return bool|int|\mysqli_result|resource|null
+     */
     public function deactivateSnippet($id)
     {
         $id = (int) $id;
@@ -135,7 +173,11 @@ class ScriptRepository
         return $this->model->deactivateSnippet($id);
     }
 
-    // 检索列表
+    /**
+     * @desc 检索列表
+     * @param $params
+     * @return array|object|\stdClass[]
+     */
     public function selectSnippets($params)
     {
         if (isset($params['perPage'])) {
@@ -204,7 +246,12 @@ class ScriptRepository
         return $this->model->insert($data);
     }
 
-    // 更新代码片断
+    /**
+     * @desc 更新代码片断
+     * @param $id
+     * @param $params
+     * @return bool|int|\mysqli_result|resource|null
+     */
     public function update($id, $params)
     {
         if (isset($params['name'])) {
@@ -319,7 +366,10 @@ class ScriptRepository
         return $list;
     }
 
-    // 查询所有代码片断
+    /**
+     * @desc 查询所有代码片断
+     * @return array|object|\stdClass[]|null
+     */
     public function selectAllSnippets()
     {
         $result = $this->model->selectAllSnippets();

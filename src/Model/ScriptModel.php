@@ -38,6 +38,15 @@ class ScriptModel
     }
 
     /**
+     * @desc Table Schema
+     * @return string
+     */
+    public function getTableSchema()
+    {
+        return $this->db->dbname;
+    }
+
+    /**
      * @desc 创建数据表
      * @return array
      */
@@ -93,10 +102,10 @@ class ScriptModel
      * @param string $columnName
      * @return array|object|\stdClass[]|null
      */
-    public function getColumn(string $columnName)
+    public function getColumn($columnName)
     {
         $tableName   = $this->getTableName();
-        $tableSchema = $this->db->dbname;
+        $tableSchema = $this->getTableSchema();
         $sql         = "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s ";
         $prepare     = $this->db->prepare($sql, $tableSchema, $tableName, $columnName);
 
@@ -149,7 +158,8 @@ class ScriptModel
     public function alterSnippet()
     {
         $tableName = $this->getTableName();
-        $sql       = "ALTER TABLE `{$tableName}` CHANGE `snippet` `snippet` LONGTEXT NULL";
+
+        $sql = "ALTER TABLE `{$tableName}` CHANGE `snippet` `snippet` LONGTEXT NULL";
 
         return $this->db->query($sql);
     }
@@ -211,9 +221,7 @@ class ScriptModel
 
         $sql = $this->db->prepare($sql, $ids);
 
-        $result = $this->db->query($sql);
-
-        return $result;
+        return $this->db->query($sql);
     }
 
     /**
@@ -236,11 +244,7 @@ class ScriptModel
 
         $sql = $this->db->prepare($sql, $id);
 
-//        $result = $this->db->get_results($sql);
-
-        $script = $this->db->get_row($sql, ARRAY_A);
-
-        return $script;
+        return $this->db->get_row($sql, ARRAY_A);
     }
 
     /**
@@ -266,38 +270,6 @@ class ScriptModel
         }
 
         return $this->db->get_var($sql);
-    }
-
-    /**
-     * @desc 查询桌面设备
-     * @param $id
-     * @return array|object|\stdClass[]|null
-     */
-    public function selectDesktopDeviceType($id)
-    {
-        $tableName = $this->getTableName();
-
-        $sql = "SELECT * FROM `{$tableName}` WHERE status='active' AND device_type = 'desktop' AND script_id = %d";
-
-        $sql = $this->db->prepare($sql, $id);
-
-        return $this->db->get_results($sql);
-    }
-
-    /**
-     * @desc 查询移动设备
-     * @param $id
-     * @return array|object|\stdClass[]|null
-     */
-    public function selectMobileDeviceType($id)
-    {
-        $tableName = $this->getTableName();
-
-        $sql = "SELECT * FROM `{$tableName}` WHERE status='active' AND device_type = 'mobile' AND script_id = %d";
-
-        $sql = $this->db->prepare($sql, $id);
-
-        return $this->db->get_results($sql);
     }
 
     /**
@@ -429,7 +401,7 @@ class ScriptModel
 
         $result = $this->db->get_results($sql, 'ARRAY_A');
 
-        return $result ?? [];
+        return $result;
     }
 
     /**
@@ -694,7 +666,10 @@ class ScriptModel
         return $scripts;
     }
 
-    // 查询所有代码片断
+    /**
+     * @desc 查询所有代码片断
+     * @return array|object|\stdClass[]|null
+     */
     public function selectAllSnippets()
     {
         $tableName = $this->getTableName();

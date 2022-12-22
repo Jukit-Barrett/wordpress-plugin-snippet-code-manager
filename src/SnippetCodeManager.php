@@ -425,9 +425,11 @@ class SnippetCodeManager implements Plugin
             return '';
         }
 
+        $id = absint($atts['id']);
+
         $repository = new ScriptRepository();
 
-        $script = $repository->selectWithoutDeviceType($atts['id']);
+        $script = $repository->selectWithoutDeviceType($id);
 
         if (empty($script)) {
             return '';
