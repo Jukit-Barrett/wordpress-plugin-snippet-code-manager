@@ -354,6 +354,7 @@ class SnippetCodeManager implements Plugin
             'hfcm_page_hfcm-create',
             'admin_page_hfcm-update',
         );
+        $allowed_pages_notices = []; // 屏蔽提示
 
         $screen = get_current_screen()->id;
 
@@ -363,8 +364,7 @@ class SnippetCodeManager implements Plugin
                 <p>
                     🔥 LIFETIME DEAL ALERT: The PRO version of this plugin is released and and available for a
                     limited time as a one-time, exclusive lifetime deal.
-                    Want it? <b><i><a
-                                    href="http://www.rockethub.com/deal/header-footer-code-manager-pro-wordpress-plugin?utm_source=freehfcm&utm_medium=banner&utm_campaign=rhltd"
+                    Want it? <b><i><a href="http://www.rockethub.com/deal/header-footer-code-manager-pro-wordpress-plugin?utm_source=freehfcm&utm_medium=banner&utm_campaign=rhltd"
                                     target="_blank">Click here</a> to get HFCM Pro for the lowest price ever</i></b>
                 </p>
             </div>

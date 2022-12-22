@@ -377,9 +377,7 @@ class SnippetListTableExtension extends WP_List_Table
         }
 
         // If the delete bulk action is triggered
-        if ((isset($_POST['action']) && 'bulk-delete' === $_POST['action'])
-            || (isset($_POST['action2']) && 'bulk-delete' === $_POST['action2'])
-        ) {
+        if ((isset($_POST['action']) && 'bulk-delete' === $_POST['action']) || (isset($_POST['action2']) && 'bulk-delete' === $_POST['action2'])) {
             $deleteIds = $_POST['snippets'];
 
             $repository = new ScriptRepository();
@@ -390,7 +388,6 @@ class SnippetListTableExtension extends WP_List_Table
             SnippetCodeManager::hfcm_redirect(admin_url('admin.php?page=hfcm-list'));
 
             return;
-
         } elseif ((isset($_POST['action']) && 'bulk-activate' === $_POST['action'])
                   || (isset($_POST['action2']) && 'bulk-activate' === $_POST['action2'])
         ) {
