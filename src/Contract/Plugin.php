@@ -27,4 +27,10 @@ interface Plugin
      * @return mixed
      */
     public function disable();
+
+    /**
+     * @desc 升级
+     * @return mixed
+     */
+    public function upgrade();
 }

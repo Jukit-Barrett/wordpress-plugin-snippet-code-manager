@@ -3,6 +3,7 @@
 namespace Mrzkit\WpPluginSnippetCodeManager\Service;
 
 use Mrzkit\WpPluginSnippetCodeManager\Repository\ScriptRepository;
+use Mrzkit\WpPluginSnippetCodeManager\Util\GeneralUtil;
 
 class ScriptService
 {
@@ -137,4 +138,187 @@ class ScriptService
 
         return $returnStatus;
     }
+
+    /**
+     * @desc Insert snippet
+     * @param $dataInput
+     * @return int
+     */
+    public function insert($dataInput)
+    {
+        $dataInput = (array) $dataInput;
+
+        if (empty($dataInput)) {
+            return -1;
+        }
+
+        // Check nonce
+        check_admin_referer('create-snippet');
+
+        if ('manual' === $dataInput['display_on']) {
+            $dataInput['display_on'] = '';
+        }
+
+        // Current User
+        $currentUser = wp_get_current_user();
+
+        // Create new snippet
+        $data = [
+            'name'             => $dataInput['name'],
+            'snippet'          => $dataInput['snippet'],
+            'snippetType'      => $dataInput['snippet_type'],
+            'deviceType'       => $dataInput['device_type'],
+            'location'         => $dataInput['location'],
+            'displayOn'        => $dataInput['display_on'],
+            'status'           => $dataInput['status'],
+            'lpCount'          => max(1, (int) $dataInput['lp_count']),
+            'sPages'           => $dataInput['s_pages'] ?? [],
+            'exPages'          => $dataInput['ex_pages'] ?? [],
+            'sPosts'           => $dataInput['s_posts'] ?? [],
+            'exPosts'          => $dataInput['ex_posts'] ?? [],
+            'sCustomPosts'     => $dataInput['s_custom_posts'] ?? [],
+            'sCategories'      => $dataInput['s_categories'] ?? [],
+            'sTags'            => $dataInput['s_tags'] ?? [],
+            'created'          => current_time('Y-m-d H:i:s'),
+            'createdBy'        => $currentUser->display_name,
+            'lastModifiedBy'   => $currentUser->display_name,
+            'lastRevisionDate' => current_time('Y-m-d H:i:s'),
+        ];
+
+        // Insert snippet
+        $lastId = $this->repository->insert($data);
+
+        return $lastId;
+    }
+
+    /**
+     * @desc Update snippet
+     * @param $id
+     * @param $dataInput
+     */
+    public function update($id, $dataInput)
+    {
+        $id        = (int) $id;
+        $dataInput = (array) $dataInput;
+
+        // Check nonce
+        check_admin_referer('update-snippet_' . $id);
+
+        // Update snippet
+        if ('manual' === $dataInput['display_on']) {
+            $dataInput['display_on'] = '';
+        }
+
+        // Current User
+        $currentUser = wp_get_current_user();
+
+        // Create new snippet
+        $data = [
+            'name'             => $dataInput['name'],
+            'snippet'          => $dataInput['snippet'],
+            'snippetType'      => $dataInput['snippet_type'],
+            'deviceType'       => $dataInput['device_type'],
+            'location'         => $dataInput['location'],
+            'displayOn'        => $dataInput['display_on'],
+            'status'           => $dataInput['status'],
+            'lpCount'          => max(1, (int) $dataInput['lp_count']),
+            'sPages'           => $dataInput['s_pages'] ?? [],
+            'exPages'          => $dataInput['ex_pages'] ?? [],
+            'sPosts'           => $dataInput['s_posts'] ?? [],
+            'exPosts'          => $dataInput['ex_posts'] ?? [],
+            'sCustomPosts'     => $dataInput['s_custom_posts'] ?? [],
+            'sCategories'      => $dataInput['s_categories'] ?? [],
+            'sTags'            => $dataInput['s_tags'] ?? [],
+            'created'          => current_time('Y-m-d H:i:s'),
+            'createdBy'        => $currentUser->display_name,
+            'lastModifiedBy'   => $currentUser->display_name,
+            'lastRevisionDate' => current_time('Y-m-d H:i:s'),
+        ];
+
+        // Update snippet
+        $result = $this->repository->update($id, $data);
+
+        return $result;
+    }
+
+    /**
+     * @desc Handle AJAX on/off toggle for snippets
+     * @param $id
+     * @param $toggle
+     * @param $toggleValue
+     * @return bool|int|\mysqli_result|resource|null
+     */
+    public function toggle($id, $toggle, $toggleValue)
+    {
+        // Check nonce
+        check_ajax_referer('hfcm-toggle-snippet', 'security');
+
+        // Active Or Inactive
+        if ('on' === $toggleValue) {
+            $result = $this->repository->activateSnippet($id);
+        } else {
+            $result = $this->repository->deactivateSnippet($id);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @desc Get Posts
+     * @param $id
+     * @return array|array[]
+     */
+    public function getPosts($id)
+    {
+        $id = (int) $id;
+        // Check nonce
+        check_ajax_referer('hfcm-get-posts', 'security');
+        // Get Snippet
+        $script = $this->repository->getSnippet($id);
+
+        $sPosts  = $script['s_posts'] ?? [];
+        $exPosts = $script['ex_posts'] ?? [];
+
+        // Get all posts type
+        $postTypes = $this->repository->getPostType();
+        // Default Post Type
+        $postTypes[] = 'post';
+        // Get all posts
+        $posts = $this->repository->getPosts($postTypes);
+
+        // Return Structure
+        $jsonOutput = [
+            'selected' => [],
+            'posts'    => [],
+            'excluded' => [],
+        ];
+
+        if (empty($posts)) {
+            return $jsonOutput;
+        }
+
+        foreach ($posts as $pData) {
+            $postTitle = trim($pData->post_title);
+
+            if (empty($postTitle)) {
+                $postTitle = "(no title)";
+            }
+
+            if ( !empty($exPosts) && in_array($pData->ID, $exPosts)) {
+                $jsonOutput['excluded'][] = $pData->ID;
+            }
+
+            if ( !empty($sPosts) && in_array($pData->ID, $sPosts)) {
+                $jsonOutput['selected'][] = $pData->ID;
+            }
+
+            $jsonOutput['posts'][] = array(
+                'text'  => GeneralUtil::sanitizeText($postTitle),
+                'value' => $pData->ID,
+            );
+        }
+
+        return $jsonOutput;
+    }
+
 }

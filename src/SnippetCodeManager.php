@@ -44,9 +44,7 @@ class SnippetCodeManager implements Plugin
     public function launch()
     {
         register_activation_hook(static::getEntryFile(), [$this, 'hfcm_options_install']);
-
         add_action('plugins_loaded', [$this, 'hfcm_db_update_check']);
-
         add_action('admin_enqueue_scripts', [__CLASS__, 'hfcm_enqueue_assets']);
         add_action('plugins_loaded', [__CLASS__, 'hfcm_load_translation_files']);
         add_action('admin_menu', [__CLASS__, 'hfcm_modifymenu']);
@@ -95,6 +93,16 @@ class SnippetCodeManager implements Plugin
     {
         // TODO: Implement disable() method.
     }
+
+    /**
+     * @desc 升级
+     * @return mixed|void
+     */
+    public function upgrade()
+    {
+        // TODO: Implement upgrade() method.
+    }
+
 
     // -----------------
 
@@ -596,143 +604,27 @@ class SnippetCodeManager implements Plugin
         // check user capabilities
         self::checkUserCan();
 
-        if (isset($_POST['insert'])) {
-            // Check nonce
-            check_admin_referer('create-snippet');
-        } else {
-            if (empty($_REQUEST['id'])) {
-                die('Missing ID parameter.');
-            }
-            $id = absint($_REQUEST['id']);
-        }
-        if (isset($_POST['update'])) {
-            // Check nonce
-            check_admin_referer('update-snippet_' . $id);
-        }
-
-        $repository = new ScriptRepository();
+        $service = new ScriptService();
 
         // Handle AJAX on/off toggle for snippets
         if (isset($_REQUEST['toggle']) && !empty($_REQUEST['togvalue'])) {
-            // Check nonce
-            check_ajax_referer('hfcm-toggle-snippet', 'security');
-
-            // Active Or Inactive
-            ('on' === $_REQUEST['togvalue']) ? $repository->activateSnippet($id) : $repository->deactivateSnippet($id);
-        } elseif (isset($_POST['insert']) || isset($_POST['update'])) {
-            // Create / update snippet
-            $dataInput = $_POST['data'] ?? [];
-
-            if ('manual' === $dataInput['display_on']) {
-                $dataInput['display_on'] = '';
-            }
-
-            // Current User
-            $currentUser = wp_get_current_user();
-
-            // Create new snippet
-            $data = [
-                'name'        => $dataInput['name'],
-                'snippet'     => $dataInput['snippet'],
-                'snippetType' => $dataInput['snippet_type'],
-                'deviceType'  => $dataInput['device_type'],
-                'location'    => $dataInput['location'],
-                'displayOn'   => $dataInput['display_on'],
-                'status'      => $dataInput['status'],
-                'lpCount'     => max(1, (int) $dataInput['lp_count']),
-
-                'sPages'           => $dataInput['s_pages'] ?? [],
-                'exPages'          => $dataInput['ex_pages'] ?? [],
-                'sPosts'           => $dataInput['s_posts'] ?? [],
-                'exPosts'          => $dataInput['ex_posts'] ?? [],
-                'sCustomPosts'     => $dataInput['s_custom_posts'] ?? [],
-                'sCategories'      => $dataInput['s_categories'] ?? [],
-                'sTags'            => $dataInput['s_tags'] ?? [],
-                'created'          => current_time('Y-m-d H:i:s'),
-                'createdBy'        => $currentUser->display_name,
-                'lastModifiedBy'   => $currentUser->display_name,
-                'lastRevisionDate' => current_time('Y-m-d H:i:s'),
-            ];
-
-            // Update snippet
-            if (isset($id)) {
-                $repository->update($id, $data);
-                self::hfcm_redirect(admin_url('admin.php?page=hfcm-update&message=1&id=' . $id));
-            } else {
-                $lastId = $repository->insert($data);
-                self::hfcm_redirect(admin_url('admin.php?page=hfcm-update&message=6&id=' . $lastId));
-            }
+            $id = absint($_REQUEST['id']);
+            $service->toggle($id, $_REQUEST['toggle'], $_REQUEST['togvalue']);
+        } else if (isset($_POST['insert']) && isset($_POST['data'])) {
+            // Insert Snippet
+            $lastId = $service->insert($_POST['data']);
+            self::hfcm_redirect(admin_url('admin.php?page=hfcm-update&message=6&id=' . $lastId));
+        } else if (isset($_POST['update']) && isset($_POST['data'])) {
+            // Update Snippet
+            $id = absint($_REQUEST['id']);
+            $service->update($id, $_POST['data']);
+            self::hfcm_redirect(admin_url('admin.php?page=hfcm-update&message=1&id=' . $id));
         } elseif (isset($_POST['get_posts'])) {
             // JSON return posts for AJAX
-
-            // Check nonce
-            check_ajax_referer('hfcm-get-posts', 'security');
-
-            // Get all selected posts
-            if (-1 === $id) {
-            } else {
-                // Select value to update
-                $script = $repository->getSnippet($id);
-
-                $s_posts  = $script[0]['s_posts'];
-                $ex_posts = $script[0]['ex_posts'];
-
-                // Get all posts
-                $args        = array(
-                    'public'   => true,
-                    '_builtin' => false,
-                );
-                $output      = 'names'; // names or objects, note names is the default
-                $operator    = 'and'; // 'and' or 'or'
-                $c_posttypes = get_post_types($args, $output, $operator);
-
-                $posttypes = array('post');
-
-                foreach ($c_posttypes as $cpdata) {
-                    $posttypes[] = $cpdata;
-                }
-
-                $posts = get_posts(
-                    array(
-                        'post_type'      => $posttypes,
-                        'posts_per_page' => -1,
-                        'numberposts'    => -1,
-                        'orderby'        => 'title',
-                        'order'          => 'ASC',
-                    )
-                );
-
-                $json_output = array(
-                    'selected' => array(),
-                    'posts'    => array(),
-                    'excluded' => array(),
-                );
-
-                if ( !empty($posts)) {
-                    foreach ($posts as $pdata) {
-                        $nnr_hfcm_post_title = trim($pdata->post_title);
-
-                        if (empty($nnr_hfcm_post_title)) {
-                            $nnr_hfcm_post_title = "(no title)";
-                        }
-                        if ( !empty($ex_posts) && in_array($pdata->ID, $ex_posts)) {
-                            $json_output['excluded'][] = $pdata->ID;
-                        }
-
-                        if ( !empty($s_posts) && in_array($pdata->ID, $s_posts)) {
-                            $json_output['selected'][] = $pdata->ID;
-                        }
-
-                        $json_output['posts'][] = array(
-                            'text'  => GeneralUtil::sanitizeText($nnr_hfcm_post_title),
-                            'value' => $pdata->ID,
-                        );
-                    }
-                }
-
-                echo wp_json_encode($json_output);
-                wp_die();
-            }
+            $id = absint($_REQUEST['id']);
+            $json_output = $service->getPosts($id);
+            echo wp_json_encode($json_output);
+            wp_die();
         }
     }
 
@@ -796,28 +688,30 @@ class SnippetCodeManager implements Plugin
 
         $repository = new ScriptRepository();
 
-        $nnr_hfcm_snippets = $repository->getSnippet($id);
+        $snippet = $repository->getSnippet($id);
 
-        foreach ($nnr_hfcm_snippets as $s) {
-            $name             = $s['name'];
-            $snippet          = $s['snippet'];
-            $nnr_snippet_type = $s['snippet_type'];
-            $device_type      = $s['device_type'];
-            $location         = $s['location'];
-            $display_on       = $s['display_on'];
-            $status           = $s['status'];
-            $lp_count         = $s['lp_count'];
-            $s_pages          = $s['s_pages'];
-            $ex_pages         = $s['ex_pages'];
-            $ex_posts         = $s['ex_posts'];
-            $s_posts          = $s['s_posts'];
-            $s_custom_posts   = $s['s_custom_posts'];
-            $s_categories     = $s['s_categories'];
-            $s_tags           = $s['s_tags'];
-            $createdby        = esc_html($s['created_by']);
-            $lastmodifiedby   = esc_html($s['last_modified_by']);
-            $createdon        = esc_html($s['created']);
-            $lastrevisiondate = esc_html($s['last_revision_date']);
+        $nnr_hfcm_snippets = [$snippet];
+
+        foreach ($nnr_hfcm_snippets as $item) {
+            $name             = $item['name'];
+            $snippet          = $item['snippet'];
+            $nnr_snippet_type = $item['snippet_type'];
+            $device_type      = $item['device_type'];
+            $location         = $item['location'];
+            $display_on       = $item['display_on'];
+            $status           = $item['status'];
+            $lp_count         = $item['lp_count'];
+            $s_pages          = $item['s_pages'];
+            $ex_pages         = $item['ex_pages'];
+            $ex_posts         = $item['ex_posts'];
+            $s_posts          = $item['s_posts'];
+            $s_custom_posts   = $item['s_custom_posts'];
+            $s_categories     = $item['s_categories'];
+            $s_tags           = $item['s_tags'];
+            $createdby        = esc_html($item['created_by']);
+            $lastmodifiedby   = esc_html($item['last_modified_by']);
+            $createdon        = esc_html($item['created']);
+            $lastrevisiondate = esc_html($item['last_revision_date']);
         }
 
         // escape for html output

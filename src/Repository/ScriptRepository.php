@@ -77,71 +77,9 @@ class ScriptRepository
     {
         $snippet = $this->model->getSnippet($id);
 
-        $list = [];
+        $snippet = $this->renderHandleIterator($snippet);
 
-        foreach ($snippet as $item) {
-            $o = [
-                'script_id'          => $item->script_id,
-                'name'               => $item->name,
-                'snippet'            => $item->snippet,
-                'snippet_type'       => $item->snippet_type,
-                'device_type'        => $item->device_type,
-                'location'           => $item->location,
-                'display_on'         => $item->display_on,
-                'lp_count'           => $item->lp_count,
-                's_pages'            => $item->s_pages,
-                'ex_pages'           => $item->ex_pages,
-                's_posts'            => $item->s_posts,
-                'ex_posts'           => $item->ex_posts,
-                's_custom_posts'     => $item->s_custom_posts,
-                's_categories'       => $item->s_categories,
-                's_tags'             => $item->s_tags,
-                'status'             => $item->status,
-                'created_by'         => $item->created_by,
-                'last_modified_by'   => $item->last_modified_by,
-                'created'            => $item->created,
-                'last_revision_date' => $item->last_revision_date,
-            ];
-
-            $o['s_pages'] = json_decode($item->s_pages);
-            if ( !is_array($o['s_pages'])) {
-                $o['s_pages'] = [];
-            }
-
-            $o['ex_pages'] = json_decode($item->ex_pages);
-            if ( !is_array($o['ex_pages'])) {
-                $o['ex_pages'] = [];
-            }
-
-            $o['s_posts'] = json_decode($item->s_posts);
-            if ( !is_array($o['s_posts'])) {
-                $o['s_posts'] = [];
-            }
-
-            $o['ex_posts'] = json_decode($item->ex_posts);
-            if ( !is_array($o['ex_posts'])) {
-                $o['ex_posts'] = [];
-            }
-
-            $o['s_custom_posts'] = json_decode($item->s_custom_posts);
-            if ( !is_array($o['s_custom_posts'])) {
-                $o['s_custom_posts'] = [];
-            }
-
-            $o['s_categories'] = json_decode($item->s_categories);
-            if ( !is_array($o['s_categories'])) {
-                $o['s_categories'] = [];
-            }
-
-            $o['s_tags'] = json_decode($item->s_tags);
-            if ( !is_array($o['s_tags'])) {
-                $o['s_tags'] = [];
-            }
-
-            $list[] = $o;
-        }
-
-        return $list;
+        return $snippet;
     }
 
     // Record Count
@@ -423,5 +361,47 @@ class ScriptRepository
         ];
 
         return $data;
+    }
+
+    /**
+     * @desc Get all posts type
+     * @return string[]
+     */
+    public function getPostType()
+    {
+        // Get all posts type
+        $args = [
+            'public'   => true,
+            '_builtin' => false,
+        ];
+
+        $output   = 'names'; // names or objects, note names is the default
+        $operator = 'and'; // 'and' or 'or'
+
+        $postTypes = get_post_types($args, $output, $operator);
+
+        $postTypes = array_values($postTypes);
+
+        return $postTypes;
+    }
+
+    /**
+     * @desc Get all posts
+     * @param $postTypes
+     * @return array
+     */
+    public function getPosts($postTypes)
+    {
+        $postTypes = (array) $postTypes;
+
+        $params = [
+            'post_type'      => $postTypes,
+            'posts_per_page' => -1,
+            'numberposts'    => -1,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ];
+
+        return get_posts($params);
     }
 }

@@ -212,9 +212,11 @@ class ScriptModel
 
         $sql = $this->db->prepare($sql, $id);
 
-        $result = $this->db->get_results($sql);
+//        $result = $this->db->get_results($sql);
 
-        return $result;
+        $script = $this->db->get_row($sql, ARRAY_A);
+
+        return $script;
     }
 
     /**
