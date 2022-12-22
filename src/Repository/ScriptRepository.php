@@ -327,7 +327,11 @@ class ScriptRepository
         return $result;
     }
 
-    // 查询指定ID集合
+    /**
+     * @desc 查询指定ID集合
+     * @param $ids
+     * @return array|object|\stdClass[]|null
+     */
     public function selectIncludeIds($ids)
     {
         $ids = (array) $ids;

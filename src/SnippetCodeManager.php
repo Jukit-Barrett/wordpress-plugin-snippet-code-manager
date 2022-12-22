@@ -629,7 +629,8 @@ class SnippetCodeManager implements Plugin
         } else if (isset($_POST['insert']) && isset($_POST['data'])) {
             // Insert Snippet
             $lastId = $service->insert($_POST['data']);
-            self::hfcm_redirect(admin_url('admin.php?page=hfcm-update&message=6&id=' . $lastId));
+            //self::hfcm_redirect(admin_url('admin.php?page=hfcm-update&message=6&id=' . $lastId));
+            self::hfcm_redirect(admin_url('admin.php?page=hfcm-list'));
         } else if (isset($_POST['update']) && isset($_POST['data'])) {
             // Update Snippet
             $id = absint($_REQUEST['id']);

@@ -4,7 +4,6 @@ namespace Mrzkit\WpPluginSnippetCodeManager\Repository;
 
 class OptionRepository
 {
-
     public function getVersion()
     {
         return get_option('hfcm_db_version');
