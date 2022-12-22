@@ -193,6 +193,30 @@ class ScriptModel
     }
 
     /**
+     * @desc 批量删除
+     * @param $ids
+     * @return bool|int|\mysqli_result|resource|null
+     */
+    public function batchDelete($ids)
+    {
+        $separated = str_repeat('%d,', count($ids));
+
+        if ( !empty($separated)) {
+            $separated = substr($separated, 0, strlen($separated) - 1);
+        }
+
+        $tableName = $this->getTableName();
+
+        $sql = "DELETE FROM `{$tableName}` WHERE `script_id` IN ( {$separated} )";
+
+        $sql = $this->db->prepare($sql, $ids);
+
+        $result = $this->db->query($sql);
+
+        return $result;
+    }
+
+    /**
      * @desc 获取单条代码片断
      * @param $id
      * @param array $fields
@@ -642,7 +666,7 @@ class ScriptModel
      */
     public function selectDeviceLocation($device, $location)
     {
-        $tableName   = $this->getTableName();
+        $tableName = $this->getTableName();
 
         $placeholder = [];
 
@@ -658,7 +682,7 @@ class ScriptModel
             $placeholder[] = $location;
         } else {
             // $location = false
-            $sql           .= " AND `location` IN ('before_content', 'after_content')";
+            $sql .= " AND `location` IN ('before_content', 'after_content')";
         }
 
         $sql .= ' LIMIT 20000 ';

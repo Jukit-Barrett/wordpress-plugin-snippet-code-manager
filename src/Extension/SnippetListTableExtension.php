@@ -355,6 +355,7 @@ class SnippetListTableExtension extends WP_List_Table
         return $views;
     }
 
+    // 批量操作
     public function process_bulk_action()
     {
         //Detect when a bulk action is being triggered...
@@ -364,37 +365,35 @@ class SnippetListTableExtension extends WP_List_Table
 
             if ( !wp_verify_nonce($nonce, 'hfcm_delete_snippet')) {
                 die('Go get a life script kiddies');
-            } else {
-                if ( !empty($_GET['snippet'])) {
-                    $snippet_id = absint($_GET['snippet']);
-                    if ( !empty($snippet_id)) {
-                        $this->repository->delete($snippet_id);
-                    }
-                }
-
-                SnippetCodeManager::hfcm_redirect(admin_url('admin.php?page=hfcm-list'));
-
-                return;
             }
-        }
 
-        // If the delete bulk action is triggered
-        if ((isset($_POST['action']) && 'bulk-delete' === $_POST['action'])
-            || (isset($_POST['action2']) && 'bulk-delete' === $_POST['action2'])
-        ) {
-            $delete_ids = $_POST['snippets'];
-
-            // loop over the array of record IDs and delete them
-            foreach ($delete_ids as $id) {
-                $id = absint($id);
-                if ( !empty($id) && is_int($id)) {
-                    $this->repository->delete($id);
+            if ( !empty($_GET['snippet'])) {
+                $snippet_id = absint($_GET['snippet']);
+                if ( !empty($snippet_id)) {
+                    $this->repository->delete($snippet_id);
                 }
             }
 
             SnippetCodeManager::hfcm_redirect(admin_url('admin.php?page=hfcm-list'));
 
             return;
+        }
+
+        // If the delete bulk action is triggered
+        if ((isset($_POST['action']) && 'bulk-delete' === $_POST['action'])
+            || (isset($_POST['action2']) && 'bulk-delete' === $_POST['action2'])
+        ) {
+            $deleteIds = $_POST['snippets'];
+
+            $repository = new ScriptRepository();
+
+            // loop over the array of record IDs and delete them
+            $repository->batchDelete($deleteIds);
+
+            SnippetCodeManager::hfcm_redirect(admin_url('admin.php?page=hfcm-list'));
+
+            return;
+
         } elseif ((isset($_POST['action']) && 'bulk-activate' === $_POST['action'])
                   || (isset($_POST['action2']) && 'bulk-activate' === $_POST['action2'])
         ) {

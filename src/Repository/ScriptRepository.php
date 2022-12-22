@@ -72,6 +72,19 @@ class ScriptRepository
         return $this->model->delete($id);
     }
 
+    // Batch Delete
+    public function batchDelete($ids)
+    {
+        $ids = (array) $ids;
+
+        if (empty($ids)) {
+            return false;
+        }
+
+        // 返回删除数
+        return $this->model->batchDelete($ids);
+    }
+
     // Get Snippet
     public function getSnippet($id)
     {
