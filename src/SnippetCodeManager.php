@@ -63,7 +63,22 @@ class SnippetCodeManager implements Plugin
      */
     public function install()
     {
-        // TODO: Implement install() method.
+        $now = strtotime('now');
+
+        $optionRepository = new OptionRepository();
+
+        $optionRepository->addActivationDate($now);
+
+        $optionRepository->updateActivationDate($now);
+
+        $repository = new ScriptRepository();
+
+        $config = $this->getConfig();
+
+        // 初始化数据表
+        $repository->createTable();
+
+        $optionRepository->addVersion($config['version']);
     }
 
     /**
@@ -100,51 +115,6 @@ class SnippetCodeManager implements Plugin
      */
     public function upgrade()
     {
-        // TODO: Implement upgrade() method.
-    }
-
-
-    // -----------------
-
-    /**
-     * @desc hfcm init function
-     */
-    public function hfcm_init()
-    {
-        static::hfcm_check_installation_date();
-        static::hfcm_plugin_notice_dismissed();
-        static::hfcm_import_snippets();
-        static::hfcm_export_snippets();
-    }
-
-    /**
-     * @desc function to create the DB / Options / Defaults
-     */
-    public function hfcm_options_install()
-    {
-        $now = strtotime('now');
-
-        $optionRepository = new OptionRepository();
-
-        $optionRepository->addActivationDate($now);
-
-        $optionRepository->updateActivationDate($now);
-
-        $repository = new ScriptRepository();
-
-        $config = $this->getConfig();
-
-        // 初始化数据表
-        $repository->createTable();
-
-        $optionRepository->addVersion($config['version']);
-    }
-
-    /**
-     * @desc function to check if plugin is being updated
-     */
-    public function hfcm_db_update_check()
-    {
         $config = $this->getConfig();
 
         $optionRepository = new OptionRepository();
@@ -168,6 +138,33 @@ class SnippetCodeManager implements Plugin
             // Update Version
             $optionRepository->updateVersion($config['version']);
         }
+    }
+
+    /**
+     * @desc hfcm init function
+     */
+    public function hfcm_init()
+    {
+        static::hfcm_check_installation_date();
+        static::hfcm_plugin_notice_dismissed();
+        static::hfcm_import_snippets();
+        static::hfcm_export_snippets();
+    }
+
+    /**
+     * @desc function to create the DB / Options / Defaults
+     */
+    public function hfcm_options_install()
+    {
+        $this->install();
+    }
+
+    /**
+     * @desc function to check if plugin is being updated
+     */
+    public function hfcm_db_update_check()
+    {
+        $this->upgrade();
     }
 
     /**
